@@ -1,0 +1,25 @@
+
+# Go build artifacts
+/bin/
+/pkg/
+/build/
+
+# Log files
+*.log
+
+# Configuration files
+.env
+
+# Editor directories and files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Go modules
+go.sum
+
+# Go air build output dir
+tmp/
+
