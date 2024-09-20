@@ -30,3 +30,20 @@ func ErrorResponse(c echo.Context, code int, msg string) error {
   }
   return c.JSON(code, echo.Map{"error": response})
 }
+
+type PagedResponse struct {
+  Code int         `json:"code"`
+  Msg  string      `json:"msg"`
+  Data interface{} `json:"data"`
+  Meta interface{} `json:"meta"`
+}
+
+func PagedOkResponse(c echo.Context, data any, meta any) error {
+  response := PagedResponse{
+    Code: http.StatusOK,
+    Msg:  "Request Success",
+    Data: data,
+    Meta: meta,
+  }
+  return c.JSON(http.StatusOK, echo.Map{"data": response})
+}

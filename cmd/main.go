@@ -7,6 +7,7 @@ import (
   "github.com/labstack/echo/v4/middleware"
   "gorm.io/driver/mysql"
   "gorm.io/gorm"
+  "gorm.io/gorm/logger"
   "log"
   "os"
   "quick-start/db"
@@ -15,6 +16,7 @@ import (
 
 func main() {
   // 加载环境变量
+  fmt.Println("你好")
   loadEnv()
   // 初始化数据库连接
   initDataBases()
@@ -34,16 +36,28 @@ func loadEnv() {
 }
 
 func initDataBases() {
+  // 设置Gorm Logger
+  newLogger := logger.New(
+    log.New(os.Stdout, "\r\n", log.LstdFlags),
+    logger.Config{
+      SlowThreshold: 200, // 慢 SQL 阈值，单位毫秒
+      LogLevel:      logger.Info,
+      Colorful:      true,
+    },
+  )
   // 获取.env的DSN变量
   dsn := os.Getenv("DSN")
   // 调用 Open 方法，传入驱动名和连接字符串
   var err error
-  db.DB, err = gorm.Open(mysql.Open(dsn), &gorm.Config{})
+  db.DB, err = gorm.Open(mysql.Open(dsn), &gorm.Config{
+    Logger: newLogger,
+  })
   // 检查是否有错误
   if err != nil {
     fmt.Println("连接数据库失败：", err)
     return
   }
+
   // 打印成功信息
   fmt.Println("连接数据库成功", db.DB)
 }
