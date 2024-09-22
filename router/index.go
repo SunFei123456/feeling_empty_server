@@ -20,6 +20,10 @@ var likeHandler = handle.LikeHandler{}
 
 var statsHandler = handle.StatsHandler{}
 
+var imageHandler = handle.ImageHandler{}
+
+var cognitiveExpansionHandler = handle.CognitiveExpansionHandler{}
+
 // 统一管理路由
 func SetupRoutes(e *echo.Echo) {
   // 加个api/v1
@@ -57,4 +61,22 @@ func SetupRoutes(e *echo.Echo) {
 
   // 数据统计
   apiV1.GET("/stats/article", statsHandler.GetArticleStats)
+
+  // 上传文件
+  apiV1.POST("/upload", imageHandler.Upload)
+  // 获取bing 每日壁纸
+  apiV1.GET("/bing_wallpaper", imageHandler.GetRandomBingImage)
+
+  // 认知扩展模块
+
+  // 根据id获取指定文章
+  apiV1.GET("/cognitive_expansion/article/:id", cognitiveExpansionHandler.GetArticleById)
+  // 根据tag获取指定文章列表
+  apiV1.GET("/cognitive_expansion/article/tag", cognitiveExpansionHandler.GetArticlesByTag)
+  // 获取所有文章tags
+  apiV1.GET("/cognitive_expansion/article/tags", cognitiveExpansionHandler.GetTags)
+  // 获取最近的10篇文章
+  apiV1.GET("/cognitive_expansion/article/latest", cognitiveExpansionHandler.GetLatestArticles)
+  // 根据title 全文搜素 模糊匹配
+  apiV1.GET("/cognitive_expansion/article/search", cognitiveExpansionHandler.SearchByTitle)
 }

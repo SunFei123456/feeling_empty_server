@@ -11,17 +11,25 @@ import (
   "quick-start/model"
   "quick-start/structs"
   "strconv"
+  "time"
 )
 
 type CommentHandler struct{}
 
 // 发表评论
 func (h *CommentHandler) Create(c echo.Context) error {
-
   // 获取前端传过来的参数
-  var comment model.Comment
+  var comment model.Comment // nickname avatar body site
   if err := c.Bind(&comment); err != nil {
     return ErrorResponse(c, http.StatusBadRequest, "参数错误")
+  }
+  // 判断输入的nickname 是否已经存在于数据库当中
+  var count int64
+  if err := db.DB.Model(model.Comment{}).Where("nickname = ?", comment.Nickname).Count(&count).Error; err != nil {
+    return ErrorResponse(c, http.StatusInternalServerError, err.Error())
+  }
+  if count > 0 {
+    return ErrorResponse(c, http.StatusBadRequest, "昵称已存在,请更换重试")
   }
 
   // 生成访客 ID
@@ -36,6 +44,10 @@ func (h *CommentHandler) Create(c echo.Context) error {
     return ErrorResponse(c, http.StatusInternalServerError, err.Error())
   }
   comment.City = res.City
+  // 设置当前的时间
+  comment.CreatedAt = time.Now()
+  // 更新的时间
+  comment.UpdatedAt = time.Now()
 
   // 将数据写入数据库
   if err := db.DB.Create(&comment).Error; err != nil {

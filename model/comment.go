@@ -5,6 +5,7 @@ type Comment struct {
   BaseModel
   Nickname        string `gorm:"size:100;not null" json:"nickname"`
   Avatar          string `gorm:"size:255" json:"avatar"`
+  Site            string `gorm:"size:255" json:"site"`
   Body            string `gorm:"type:text;not null" json:"body"`
   Status          string `gorm:"type:enum('visible', 'deleted');default:'visible'" json:"status"`
   VisitorId       string `json:"visitor_id"`
