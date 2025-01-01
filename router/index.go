@@ -1,82 +1,61 @@
 package router
 
 import (
+  "fangkong_xinsheng_app/db"
+  "fangkong_xinsheng_app/handler"
+  "fangkong_xinsheng_app/middleware"
+  "fangkong_xinsheng_app/service"
   "github.com/labstack/echo/v4"
-  "quick-start/handle"
 )
 
-var userHandle = handle.UserHandler{}
-var articleHandle = handle.ArticleHandler{}
-
-var progressHandle = handle.ProgressHandler{}
-
-var websiteHandle = handle.WebsiteHandler{}
-
-var poemHandle = handle.PoemHandler{}
-
-var commentHandle = handle.CommentHandler{}
-
-var likeHandler = handle.LikeHandler{}
-
-var statsHandler = handle.StatsHandler{}
-
-var imageHandler = handle.ImageHandler{}
-
-var cognitiveExpansionHandler = handle.CognitiveExpansionHandler{}
-
-// 统一管理路由
+// SetupRoutes 配置所有路由
 func SetupRoutes(e *echo.Echo) {
-  // 加个api/v1
-  apiV1 := e.Group("/api/v1")
+  // 初始化处理器
+  userHandler := handler.NewUserHandler(service.NewUserService(db.DB))
+  bottleHandler := handler.NewBottleHandler(db.DB)
 
-  // 在 "api/v1" 路由组中定义路由
-  apiV1.POST("/user/create", userHandle.Create)
-  apiV1.GET("/user/:id", userHandle.Get)
-  apiV1.GET("/user/:id/articles_total", userHandle.GetArticlesTotal)
+  // API 路由组
+  api := e.Group("/api/v1")
 
-  apiV1.POST("/article/create", articleHandle.Create)
-  apiV1.GET("/article/category/:category", articleHandle.Get)
-  apiV1.GET("/article/:id", articleHandle.GetOne)
-  apiV1.GET("/article/latest", articleHandle.GetLatest)
-  apiV1.GET("/article/category/:category/list", articleHandle.GetArticlesListByCategory)
-  apiV1.GET("/article/hot", articleHandle.GetRandomHotArticles)
-  apiV1.PUT("/article/:id/views", articleHandle.IncrementViewCount)
-  apiV1.GET("/article/:id/comments", articleHandle.GetCommentsByArticleID)
+  // 公开路由组
+  auth := api.Group("/auth")
+  {
+    auth.POST("/register", userHandler.HandleRegister)
+    auth.POST("/login", userHandler.HandleLogin)
+  }
 
-  apiV1.GET("/progress/list", progressHandle.Get)
+  // 需要认证的路由组
+  authenticated := api.Group("")
+  authenticated.Use(middleware.JWT())
 
-  apiV1.GET("/website/:category", websiteHandle.Get)
-  apiV1.GET("/website/:category/tags", websiteHandle.GetTagsByCategory)
-  apiV1.GET("/website/tag/search", websiteHandle.SearchByTag)
+  // 用户相关路由
+  users := authenticated.Group("/users")
+  {
+    users.GET("/me", userHandler.HandleGetCurrentUser)
+    users.PUT("/me", userHandler.HandleUpdateCurrentUser)
+    // 可以添加更多用户相关路由...
+  }
 
-  apiV1.GET("/poem/list", poemHandle.Get)
+  // 漂流瓶相关路由
+  bottles := authenticated.Group("/bottles")
+  {
+    // 基础操作
+    bottles.POST("", bottleHandler.HandleCreateBottle)
+    bottles.GET("", bottleHandler.HandleGetBottles)
+    bottles.GET("/:id", bottleHandler.HandleGetBottle)
+    bottles.PUT("/:id", bottleHandler.HandleUpdateBottle)
+    bottles.DELETE("/:id", bottleHandler.HandleDeleteBottle)
 
-  // 评论
-  apiV1.POST("/comment/create", commentHandle.Create)
-  apiV1.GET("/comment/:commentable_type/list", commentHandle.Get)
-  apiV1.DELETE("/comment/:id", commentHandle.Delete)
+    // 特殊查询
+    bottles.GET("/random", bottleHandler.HandleGetRandomBottles)
+    bottles.GET("/hot", bottleHandler.HandleGetHotBottles)
+    bottles.GET("/viewed", bottleHandler.HandleGetViewedBottles)
+    bottles.GET("/recent-viewed", bottleHandler.HandleGetRecentViewedBottles)
+  }
 
-  // 切换喜欢
-  apiV1.POST("/reaction/:type/:id/:reaction_type", likeHandler.ToggleLike)
-
-  // 数据统计
-  apiV1.GET("/stats/article", statsHandler.GetArticleStats)
-
-  // 上传文件
-  apiV1.POST("/upload", imageHandler.Upload)
-  // 获取bing 每日壁纸
-  apiV1.GET("/bing_wallpaper", imageHandler.GetRandomBingImage)
-
-  // 认知扩展模块
-
-  // 根据id获取指定文章
-  apiV1.GET("/cognitive_expansion/article/:id", cognitiveExpansionHandler.GetArticleById)
-  // 根据tag获取指定文章列表
-  apiV1.GET("/cognitive_expansion/article/tag", cognitiveExpansionHandler.GetArticlesByTag)
-  // 获取所有文章tags
-  apiV1.GET("/cognitive_expansion/article/tags", cognitiveExpansionHandler.GetTags)
-  // 获取最近的10篇文章
-  apiV1.GET("/cognitive_expansion/article/latest", cognitiveExpansionHandler.GetLatestArticles)
-  // 根据title 全文搜素 模糊匹配
-  apiV1.GET("/cognitive_expansion/article/search", cognitiveExpansionHandler.SearchByTitle)
+  // TODO: 话题相关路由
+  //topics := authenticated.Group("/topics")
+  //{
+  //  // 待实现...
+  //}
 }

@@ -23,3 +23,7 @@ go.sum
 # Go air build output dir
 tmp/
 
+# air 配置文件
+.air.toml
+
+

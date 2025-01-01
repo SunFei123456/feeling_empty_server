@@ -1,10 +1,12 @@
 package model
 
-import "time"
+import (
+  "time"
+)
 
-// 定义一个BaseModel结构体
+// BaseModel 基础模型
 type BaseModel struct {
-  ID        int       `gorm:"primary_key" json:"id"`
+  ID        uint      `gorm:"primarykey;autoIncrement;type:bigint unsigned" json:"id"`
   CreatedAt time.Time `gorm:"autoCreateTime" json:"created_at"`
   UpdatedAt time.Time `gorm:"autoUpdateTime" json:"updated_at"`
 }

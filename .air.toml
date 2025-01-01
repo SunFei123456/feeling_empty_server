@@ -5,21 +5,48 @@ root = "."
 
 # [build] 部分用于定义编译命令和其他编译选项
 [build]
-  cmd = "go build -o ./tmp/main.exe ./cmd/main.go"  # Windows 上生成 .exe 文件
-  bin = "./tmp/main.exe"  # 指定生成的 .exe 文件名称
-  include = ["*.go", "config/**/*.yaml"]  # 监视的文件变化
-  exclude = ["vendor/**", "node_modules/**"]  # 不监视的文件或目录
+  # 修改编译命令，使用相对路径
+  cmd = "go build -o tmp/main.exe cmd/main.go"
+  # 指定生成的可执行文件
+  bin = "tmp/main.exe"
+  # 设置工作目录
+  full_bin = "tmp/main.exe"
+  # 监视的文件类型
+  include_ext = ["go", "yaml"]
+  # 排除的目录
+  exclude_dir = ["tmp", "vendor"]
+  # 监视的文件变化
+  include_file = []
+  # 排除的文件
+  exclude_file = []
+  # 延迟时间
+  delay = 1000
+  # 终止超时时间
+  kill_delay = "0.5s"
+  # 是否发送中断信号
+  send_interrupt = false
+  # 是否在启动时清理旧的构建文件
+  clean_on_exit = false
 
-# [run] 部分用于定义运行命令和环境变量
 [run]
-  cmd = "./main.exe"  # 指定运行的可执行文件
-  env = ["PORT=8080"]  # 设置运行时的环境变量
+  # 设置运行命令
+  cmd = "./tmp/main.exe"
 
-# [watch] 部分用于定义监视的文件和目录
-[watch]
-  include = ["*.go"]
-  exclude = ["vendor/**", "node_modules/**"]
+# [color] 部分用于定义输出颜色
+[color]
+  main = "magenta"
+  watcher = "cyan"
+  build = "yellow"
+  runner = "green"
 
-# [logger] 部分用于定义日志级别
-[logger]
-  level = "info"
+# [log] 部分用于定义日志设置
+[log]
+  time = false
+
+# [misc] 部分用于定义其他设置
+[misc]
+  clean_on_exit = false
+
+# [screen] 部分用于定义清屏设置
+[screen]
+  clear_on_rebuild = false

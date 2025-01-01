@@ -1,6 +1,9 @@
 package main
 
 import (
+  "fangkong_xinsheng_app/db"
+  "fangkong_xinsheng_app/router"
+  "fangkong_xinsheng_app/tools"
   "fmt"
   "github.com/joho/godotenv"
   "github.com/labstack/echo/v4"
@@ -10,19 +13,30 @@ import (
   "gorm.io/gorm/logger"
   "log"
   "os"
-  "quick-start/db"
-  "quick-start/router"
 )
 
 func main() {
   // 加载环境变量
-  fmt.Println("你好")
   loadEnv()
   // 初始化数据库连接
   initDataBases()
-  // 启动 HTTP 服务器
-  startServer()
-  fmt.Println("哈哈哈")
+  // 执行数据库迁移
+  //if err := db.AutoMigrate(db.DB); err != nil {
+  //  log.Fatalf("数据库迁移失败: %v", err)
+  //}
+  // 初始化 Echo 实例
+  e := echo.New()
+  // 注册验证器
+  e.Validator = tools.NewCustomValidator()
+  e.Use(middleware.CORS())
+  e.Use(middleware.Logger())
+  e.Use(middleware.Recover())
+  e.Static("/static", "static")
+  // 引入注册路由
+  router.SetupRoutes(e)
+  // 启动服务器
+  print("服务器允许在 http://localhost:8080 访问")
+  e.Logger.Fatal(e.Start(":8080"))
 }
 
 func loadEnv() {
@@ -60,17 +74,4 @@ func initDataBases() {
 
   // 打印成功信息
   fmt.Println("连接数据库成功", db.DB)
-}
-
-func startServer() {
-  // 初始化 Echo 实例
-  e := echo.New()
-  e.Use(middleware.CORS())
-  e.Use(middleware.Logger())
-  e.Use(middleware.Recover())
-  e.Static("/static", "static")
-  // 引入注册路由
-  router.SetupRoutes(e)
-  // 启动服务器
-  e.Logger.Fatal(e.Start(":8080"))
 }

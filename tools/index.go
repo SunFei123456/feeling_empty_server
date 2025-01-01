@@ -1,6 +1,7 @@
 package tools
 
 import (
+  _ "github.com/labstack/echo/v4"
   "os"
   "reflect"
 )
@@ -44,24 +45,4 @@ func ToMap(entity any, fields ...string) map[string]any {
     }
   }
   return resultMap
-}
-
-// 根据不同的类别返回不同的图片
-func GetCoverImage(category string) string {
-  switch category {
-  case "Go":
-    return "http://127.0.0.1:8080/static/image/go.jpg"
-  case "Gorm":
-    return "http://127.0.0.1:8080/static/image/gorm.jpg"
-  case "Vue":
-    return "http://127.0.0.1:8080/static/image/vue.jpg"
-  case "React":
-    return "http://127.0.0.1:8080/static/image/react.webp"
-  case "JavaScript":
-    return "http://127.0.0.1:8080/static/image/js.jpg"
-  case "CSS":
-    return "http://127.0.0.1:8080/static/image/css.png"
-  default:
-    return "http://127.0.0.1:8080/static/image/default.jpg"
-  }
 }
