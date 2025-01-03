@@ -4,6 +4,7 @@ package model
 type Bottle struct {
   BaseModel
   UserID   uint   `gorm:"not null;comment:发布用户ID" json:"user_id"`
+  Title    string `gorm:"size:50;comment:标题" json:"title"`
   Content  string `gorm:"type:text;comment:内容" json:"content"`
   ImageURL string `gorm:"size:255;comment:图片URL" json:"image_url"`
   AudioURL string `gorm:"size:255;comment:音频URL" json:"audio_url"`

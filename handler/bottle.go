@@ -39,6 +39,7 @@ func (h *BottleHandler) HandleCreateBottle(c echo.Context) error {
   userID := tools.GetUserIDFromContext(c)
   // 创建漂流瓶(uid, content, image_url, audio_url, mood, topic_id, is_public)
   bottle := &model.Bottle{
+    Title:    req.Title,
     UserID:   userID,
     Content:  req.Content,
     ImageURL: req.ImageURL,
@@ -56,7 +57,7 @@ func (h *BottleHandler) HandleCreateBottle(c echo.Context) error {
     return ErrorResponse(c, http.StatusInternalServerError, "获取漂流瓶失败"+err.Error())
   }
 
-  return OkResponse(c, tools.ToMap(bottle, "id,content,image_url,audio_url,mood,topic_id,user_id,created_at,views,user"))
+  return OkResponse(c, tools.ToMap(bottle, "id,title,content,image_url,audio_url,mood,topic_id,user_id,created_at,views,user"))
 }
 
 // HandleGetRandomBottles 随机获取漂流瓶(10个)
@@ -74,7 +75,7 @@ func (h *BottleHandler) HandleGetRandomBottles(c echo.Context) error {
   for _, bottle := range bottles {
     // 不指定字段列表，将返回所有字段
     // 或者明确指定要返回的字段
-    bottleMap := tools.ToMap(bottle, "id", "content", "image_url", "audio_url",
+    bottleMap := tools.ToMap(bottle, "id", "title", "content", "image_url", "audio_url",
       "mood", "topic_id", "created_at", "views", "user")
     // user 也过滤
     bottleMap["user"] = tools.ToMap(bottle.User, "id", "name", "avatar_url", "sex")
@@ -137,7 +138,7 @@ func (h *BottleHandler) HandleGetBottle(c echo.Context) error {
 
   var result []map[string]any
 
-  bottleMap := tools.ToMap(bottle, "id", "content", "image_url", "audio_url",
+  bottleMap := tools.ToMap(bottle, "id", "title", "content", "image_url", "audio_url",
     "mood", "topic_id", "created_at", "views", "user")
   bottleMap["user"] = tools.ToMap(bottle.User, "id", "nickname", "avatar_url", "sex")
   bottleMap["topic"] = tools.ToMap(bottle.Topic, "id", "title", "status")
@@ -171,6 +172,10 @@ func (h *BottleHandler) HandleUpdateBottle(c echo.Context) error {
   }
 
   updates := make(map[string]any)
+
+  if req.Title != "" {
+    updates["title"] = req.Title
+  }
   if req.Content != "" {
     updates["content"] = req.Content
   }
@@ -300,7 +305,7 @@ func (h *BottleHandler) HandleGetViewedBottles(c echo.Context) error {
   for _, bottleView := range bottleViews {
     // 不指定字段列表，将返回所有字段
     // 或者明确指定要返回的字段
-    bottleMap := tools.ToMap(bottleView.Bottle, "id", "content", "image_url", "audio_url",
+    bottleMap := tools.ToMap(bottleView.Bottle, "id", "title", "content", "image_url", "audio_url",
       "mood", "topic_id", "created_at", "views", "user")
     // user 也过滤
     bottleMap["user"] = tools.ToMap(bottleView.User, "id", "nickname", "avatar_url", "sex")
@@ -323,8 +328,8 @@ func (h *BottleHandler) HandleGetRecentViewedBottles(c echo.Context) error {
   err := h.db.Model(&model.BottleView{}).
     Joins("LEFT JOIN bottles ON bottle_views.bottle_id = bottles.id").
     Where("bottle_views.user_id = ? AND bottle_views.updated_at >= ?", userID, threeDaysAgo).
-    Preload("Bottle").        // 预加载漂流瓶信息
-    Preload("Bottle.User").   // 预加载漂流瓶作者信息
+    Preload("Bottle"). // 预加载漂流瓶信息
+    Preload("Bottle.User"). // 预加载漂流瓶作者信息
     Order("bottle_views.updated_at DESC").
     Find(&bottleViews).Error
 
@@ -343,26 +348,26 @@ func (h *BottleHandler) HandleGetRecentViewedBottles(c echo.Context) error {
     if view.Bottle.ID == 0 { // 跳过已删除的漂流瓶
       continue
     }
-    
-    bottleMap := tools.ToMap(view.Bottle, "id", "content", "image_url", "audio_url",
+
+    bottleMap := tools.ToMap(view.Bottle, "id", "title", "content", "image_url", "audio_url",
       "mood", "topic_id", "created_at", "views")
-    
+
     // 添加用户信息
     if view.Bottle.User.ID != 0 {
       bottleMap["user"] = tools.ToMap(view.Bottle.User, "id", "nickname", "avatar", "sex")
     }
-    
+
     // 添加查看时间
     bottleMap["viewed_at"] = view.UpdatedAt
-    
+
     result = append(result, bottleMap)
   }
 
   return OkResponse(c, map[string]interface{}{
-    "bottles": result,
-    "total": total,
+    "bottles":    result,
+    "total":      total,
     "start_time": threeDaysAgo,
-    "end_time": time.Now(),
+    "end_time":   time.Now(),
   })
 }
 

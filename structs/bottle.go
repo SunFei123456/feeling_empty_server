@@ -6,6 +6,7 @@ import (
 
 // CreateBottleRequest 创建漂流瓶请求
 type CreateBottleRequest struct {
+  Title    string `json:"title" validate:"required,max=50"`
   Content  string `json:"content" validate:"omitempty,max=1000"`
   ImageURL string `json:"image_url" validate:"omitempty,url"`
   AudioURL string `json:"audio_url" validate:"omitempty,url"`
@@ -31,6 +32,7 @@ func (r *CreateBottleRequest) Validate() error {
 
 // UpdateBottleRequest 更新漂流瓶请求
 type UpdateBottleRequest struct {
+  Title    string `json:"title" validate:"omitempty,max=50"`
   Content  string `json:"content" validate:"omitempty,max=1000"`
   ImageURL string `json:"image_url" validate:"omitempty,url"`
   AudioURL string `json:"audio_url" validate:"omitempty,url"`
