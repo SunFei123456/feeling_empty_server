@@ -3,6 +3,7 @@ package main
 import (
   "fangkong_xinsheng_app/db"
   "fangkong_xinsheng_app/router"
+  "fangkong_xinsheng_app/service"
   "fangkong_xinsheng_app/tools"
   "fmt"
   "github.com/joho/godotenv"
@@ -20,6 +21,8 @@ func main() {
   loadEnv()
   // 初始化数据库连接
   initDataBases()
+  // 初始化七牛云存储
+  initQiniuService()
   // 执行数据库迁移
   //if err := db.AutoMigrate(db.DB); err != nil {
   //  log.Fatalf("数据库迁移失败: %v", err)
@@ -49,6 +52,15 @@ func loadEnv() {
   }
 }
 
+// 初始化七牛云配置
+func initQiniuService() {
+  service.InitQiniu(&service.QiniuConfig{
+    AccessKey:    os.Getenv("QINIU_ACCESS_KEY"),
+    SecretKey:    os.Getenv("QINIU_SECRET_KEY"),
+    BucketName:   os.Getenv("QINIU_BUCKET_NAME"),
+    BucketDomain: os.Getenv("QINIU_BUCKET_DOMAIN"),
+  })
+}
 func initDataBases() {
   // 设置Gorm Logger
   newLogger := logger.New(
@@ -59,8 +71,13 @@ func initDataBases() {
       Colorful:      true,
     },
   )
-  // 获取.env的DSN变量
-  dsn := os.Getenv("DSN")
+  // 获取.env的DSN变量 如果本地, 则DSN, 远端 则REMOTE_DSN
+  dsn := ""
+  if os.Getenv("ENV") == "production" {
+    dsn = os.Getenv("REMOTE_DSN")
+  } else {
+    dsn = os.Getenv("REMOTE_DSN")
+  }
   // 调用 Open 方法，传入驱动名和连接字符串
   var err error
   db.DB, err = gorm.Open(mysql.Open(dsn), &gorm.Config{
