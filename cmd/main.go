@@ -3,7 +3,6 @@ package main
 import (
   "fangkong_xinsheng_app/db"
   "fangkong_xinsheng_app/router"
-  "fangkong_xinsheng_app/service"
   "fangkong_xinsheng_app/tools"
   "fmt"
   "github.com/joho/godotenv"
@@ -21,8 +20,6 @@ func main() {
   loadEnv()
   // 初始化数据库连接
   initDataBases()
-  // 初始化七牛云存储
-  initQiniuService()
   // 执行数据库迁移
   //if err := db.AutoMigrate(db.DB); err != nil {
   //  log.Fatalf("数据库迁移失败: %v", err)
@@ -52,15 +49,6 @@ func loadEnv() {
   }
 }
 
-// 初始化七牛云配置
-func initQiniuService() {
-  service.InitQiniu(&service.QiniuConfig{
-    AccessKey:    os.Getenv("QINIU_ACCESS_KEY"),
-    SecretKey:    os.Getenv("QINIU_SECRET_KEY"),
-    BucketName:   os.Getenv("QINIU_BUCKET_NAME"),
-    BucketDomain: os.Getenv("QINIU_BUCKET_DOMAIN"),
-  })
-}
 func initDataBases() {
   // 设置Gorm Logger
   newLogger := logger.New(

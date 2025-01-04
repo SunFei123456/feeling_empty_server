@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>COS 文件上传测试</title>
+    <style>
+        .container {
+            max-width: 600px;
+            margin: 50px auto;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+        }
+        .preview {
+            max-width: 300px;
+            margin: 20px 0;
+        }
+        .result {
+            margin-top: 20px;
+            padding: 10px;
+            border: 1px solid #eee;
+            border-radius: 4px;
+            word-break: break-all;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>COS 文件上传测试</h2>
+        
+        <!-- 文件选择 -->
+        <input type="file" id="fileInput" accept="image/*">
+        
+        <!-- 预览图片 -->
+        <div>
+            <img id="preview" class="preview">
+        </div>
+        
+        <!-- 上传按钮 -->
+        <button onclick="uploadFile()">上传文件</button>
+        
+        <!-- 结果显示 -->
+        <div id="result" class="result"></div>
+
+        <img src="https://fkxs-1321402197.cos.ap-guangzhou.myqcloud.com/images/1735983666311127000.jpg" alt="">
+    </div>
+
+    <script>
+        // 预览选择的图片
+        document.getElementById('fileInput').onchange = function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    document.getElementById('preview').src = e.target.result;
+                };
+                reader.readAsDataURL(file);
+            }
+        };
+
+        async function uploadFile() {
+            const fileInput = document.getElementById('fileInput');
+            const resultDiv = document.getElementById('result');
+            
+            if (!fileInput.files.length) {
+                resultDiv.textContent = '请先选择文件';
+                return;
+            }
+
+            const file = fileInput.files[0];
+            
+            try {
+                // 第一步：获取上传凭证
+                const tokenRes = await fetch('http://localhost:8080/api/v1/cos/upload-token?ext=jpg', {
+                    headers: {
+                        'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjo1LCJleHAiOjE3MzYwNTIyNzV9.9eZ88SBLzAKQAjW40jq2dD6gkUusmNkh5ULCRxk3ArY' // 替换为实际的token
+                    }
+                });
+                const tokenData = await tokenRes.json();
+                
+                if (!tokenData.data?.url) {
+                    throw new Error('获取上传凭证失败');
+                }
+
+                // 第二步：上传文件
+                const uploadRes = await fetch(tokenData.data.url, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': tokenData.data.content_type
+                    },
+                    body: file
+                });
+
+                if (!uploadRes.ok) {
+                    throw new Error(`上传失败: ${uploadRes.statusText}`);
+                }
+
+                // 构建访问URL
+                const fileUrl = `https://${tokenData.data.bucket}.cos.${tokenData.data.region}.myqcloud.com/${tokenData.data.key}`;
+                
+                resultDiv.innerHTML = `
+                    上传成功！<br>
+                    文件访问地址：<br>
+                    <a href="${fileUrl}" target="_blank">${fileUrl}</a>
+                `;
+            } catch (error) {
+                resultDiv.textContent = `错误：${error.message}`;
+                console.error('上传错误：', error);
+            }
+        }
+    </script>
+</body>
+</html>

@@ -13,7 +13,7 @@ func SetupRoutes(e *echo.Echo) {
   // 初始化处理器
   userHandler := handler.NewUserHandler(service.NewUserService(db.DB))
   bottleHandler := handler.NewBottleHandler(db.DB)
-  qiniuHandler := handler.QiniuHandler{}
+  cosHandler := handler.COSHandler{}
 
   // API 路由组
   api := e.Group("/api/v1")
@@ -54,10 +54,10 @@ func SetupRoutes(e *echo.Echo) {
     bottles.GET("/recent-viewed", bottleHandler.HandleGetRecentViewedBottles)
   }
 
-  // qiniu
-  qiniu := authenticated.Group("/qiniu")
+  // TencentCOS 相关路由
+  tcos := authenticated.Group("/cos")
   {
-    qiniu.GET("/upload-token", qiniuHandler.GetUploadToken)
+    tcos.GET("/upload-token", cosHandler.GetUploadToken)
   }
   // TODO: 话题相关路由
   //topics := authenticated.Group("/topics")
