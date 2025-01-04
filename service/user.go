@@ -112,5 +112,25 @@ func (s *UserService) GetUserByID(id uint) (*model.User, error) {
 
 // UpdateUser 更新用户信息
 func (s *UserService) UpdateUser(id uint, updates map[string]interface{}) error {
-  return s.db.Model(&model.User{}).Where("id = ?", id).Updates(updates).Error
+  // 先检查用户是否存在
+  var user model.User
+  if err := s.db.First(&user, id).Error; err != nil {
+    return fmt.Errorf("用户不存在: %v", err)
+  }
+
+  // 执行更新操作
+  result := s.db.Model(&model.User{}).
+    Where("id = ?", id).
+    Updates(updates)
+
+  if result.Error != nil {
+    return fmt.Errorf("更新失败: %v", result.Error)
+  }
+
+  // 检查是否有记录被更新
+  if result.RowsAffected == 0 {
+    return fmt.Errorf("没有记录被更新")
+  }
+
+  return nil
 }

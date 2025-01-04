@@ -13,6 +13,7 @@ func SetupRoutes(e *echo.Echo) {
   // 初始化处理器
   userHandler := handler.NewUserHandler(service.NewUserService(db.DB))
   bottleHandler := handler.NewBottleHandler(db.DB)
+  bottleViewHandler := handler.BottleViewHandler{}
   cosHandler := handler.COSHandler{}
 
   // API 路由组
@@ -32,8 +33,10 @@ func SetupRoutes(e *echo.Echo) {
   // 用户相关路由
   users := authenticated.Group("/users")
   {
-    users.GET("/me", userHandler.HandleGetCurrentUser)
-    users.PUT("/me", userHandler.HandleUpdateCurrentUser)
+    // 用户信息
+    users.GET("", userHandler.HandleGetCurrentUser)
+    // 更新用户信息
+    users.PUT("", userHandler.HandleUpdateCurrentUser)
     // 可以添加更多用户相关路由...
   }
 
@@ -43,15 +46,26 @@ func SetupRoutes(e *echo.Echo) {
     // 基础操作
     bottles.POST("", bottleHandler.HandleCreateBottle)
     bottles.GET("", bottleHandler.HandleGetBottles)
-    bottles.GET("/:id", bottleHandler.HandleGetBottle)
     bottles.PUT("/:id", bottleHandler.HandleUpdateBottle)
     bottles.DELETE("/:id", bottleHandler.HandleDeleteBottle)
 
     // 特殊查询
     bottles.GET("/random", bottleHandler.HandleGetRandomBottles)
     bottles.GET("/hot", bottleHandler.HandleGetHotBottles)
-    bottles.GET("/viewed", bottleHandler.HandleGetViewedBottles)
     bottles.GET("/recent-viewed", bottleHandler.HandleGetRecentViewedBottles)
+  }
+
+  // 漂流瓶浏览记录相关路由
+  bottleViews := authenticated.Group("/bottle-views")
+  {
+    // 获取漂流瓶浏览记录
+    bottleViews.GET("", bottleViewHandler.HandleGetBottleViews)
+    // 删除指定漂流瓶浏览记录
+    bottleViews.DELETE("/:id", bottleViewHandler.HandleDeleteBottleView)
+    // 删除用户的全部漂流瓶浏览记录
+    bottleViews.DELETE("", bottleViewHandler.HandleDeleteAllBottleViews)
+    // 创建漂流瓶浏览记录
+    bottleViews.POST("", bottleViewHandler.HandleCreateBottleView)
   }
 
   // TencentCOS 相关路由
@@ -60,8 +74,4 @@ func SetupRoutes(e *echo.Echo) {
     tcos.GET("/upload-token", cosHandler.GetUploadToken)
   }
   // TODO: 话题相关路由
-  //topics := authenticated.Group("/topics")
-  //{
-  //  // 待实现...
-  //}
 }

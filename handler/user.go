@@ -88,14 +88,14 @@ func (h *UserHandler) HandleGetCurrentUser(c echo.Context) error {
     return ErrorResponse(c, http.StatusNotFound, "User not found")
   }
 
-  return OkResponse(c, user)
+  return OkResponse(c, tools.ToMap(user, "id", "email", "nickname", "avatar", "sex"))
 }
 
 // HandleUpdateCurrentUser 更新当前用户信息
 func (h *UserHandler) HandleUpdateCurrentUser(c echo.Context) error {
   var req structs.UpdateUserRequest
   if err := c.Bind(&req); err != nil {
-    return ErrorResponse(c, http.StatusBadRequest, "Invalid request body")
+    return ErrorResponse(c, http.StatusBadRequest, "无效的请求参数")
   }
 
   if err := c.Validate(&req); err != nil {
@@ -105,6 +105,7 @@ func (h *UserHandler) HandleUpdateCurrentUser(c echo.Context) error {
   userID := tools.GetUserIDFromContext(c)
   updates := make(map[string]interface{})
 
+  // 只更新非空字段
   if req.Nickname != "" {
     updates["nickname"] = req.Nickname
   }
@@ -116,8 +117,17 @@ func (h *UserHandler) HandleUpdateCurrentUser(c echo.Context) error {
   }
 
   if err := h.userService.UpdateUser(userID, updates); err != nil {
-    return ErrorResponse(c, http.StatusInternalServerError, "Failed to update user")
+    return ErrorResponse(c, http.StatusInternalServerError, "更新用户信息失败: "+err.Error())
   }
 
-  return OkResponse(c, "User updated successfully")
+  // 获取更新后的用户信息
+  user, err := h.userService.GetUserByID(userID)
+  if err != nil {
+    return ErrorResponse(c, http.StatusInternalServerError, "获取更新后的用户信息失败")
+  }
+
+  return OkResponse(c, map[string]interface{}{
+    "message": "用户信息更新成功",
+    "user":    user,
+  })
 }

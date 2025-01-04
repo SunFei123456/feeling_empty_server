@@ -7,7 +7,6 @@ import (
   "github.com/labstack/echo/v4"
   "gorm.io/gorm"
   "net/http"
-  "strconv"
   "time"
 )
 
@@ -57,7 +56,7 @@ func (h *BottleHandler) HandleCreateBottle(c echo.Context) error {
     return ErrorResponse(c, http.StatusInternalServerError, "获取漂流瓶失败"+err.Error())
   }
 
-  return OkResponse(c, tools.ToMap(bottle, "id,title,content,image_url,audio_url,mood,topic_id,user_id,created_at,views,user"))
+  return OkResponse(c, "创建成功!")
 }
 
 // HandleGetRandomBottles 随机获取漂流瓶(10个)
@@ -73,76 +72,12 @@ func (h *BottleHandler) HandleGetRandomBottles(c echo.Context) error {
 
   var result []map[string]any
   for _, bottle := range bottles {
-    // 不指定字段列表，将返回所有字段
-    // 或者明确指定要返回的字段
     bottleMap := tools.ToMap(bottle, "id", "title", "content", "image_url", "audio_url",
-      "mood", "topic_id", "created_at", "views", "user")
-    // user 也过滤
-    bottleMap["user"] = tools.ToMap(bottle.User, "id", "name", "avatar_url", "sex")
+      "mood", "topic_id", "created_at", "resonances", "views", "user")
+    bottleMap["user"] = tools.ToMap(bottle.User, "id", "nickname", "avatar", "sex")
 
     result = append(result, bottleMap)
   }
-
-  return OkResponse(c, result)
-}
-
-// HandleGetBottle 获取漂流瓶详情
-func (h *BottleHandler) HandleGetBottle(c echo.Context) error {
-  // 将 id 参数转换为 uint
-  id, err := strconv.ParseUint(c.Param("id"), 10, 32)
-  if err != nil {
-    return ErrorResponse(c, http.StatusBadRequest, "无效的漂流瓶ID")
-  }
-
-  var bottle model.Bottle
-  if err := h.db.Preload("User").First(&bottle, id).Error; err != nil {
-    return ErrorResponse(c, http.StatusNotFound, "漂流瓶不存在"+err.Error())
-  }
-
-  userID := tools.GetUserIDFromContext(c)
-
-  // 使用事务来确保数据一致性
-  err = h.db.Transaction(func(tx *gorm.DB) error {
-    // 1. 增加浏览量
-    if err := tx.Model(&bottle).UpdateColumn("views", gorm.Expr("views + ?", 1)).Error; err != nil {
-      return err
-    }
-
-    // 2. 记录查看历史
-    bottleView := &model.BottleView{
-      BottleID: uint(id),
-      UserID:   userID,
-    }
-
-    // 如果已经查看过，就更新时间，否则创建新记录
-    result := tx.Where("bottle_id = ? AND user_id = ?", id, userID).
-      FirstOrCreate(bottleView)
-
-    if result.Error != nil {
-      return result.Error
-    }
-
-    // 如果记录已存在（RowsAffected = 0），则更新时间戳
-    if result.RowsAffected == 0 {
-      if err := tx.Model(bottleView).Update("updated_at", time.Now()).Error; err != nil {
-        return err
-      }
-    }
-
-    return nil
-  })
-
-  if err != nil {
-    return ErrorResponse(c, http.StatusInternalServerError, "创建漂流瓶浏览历史失败"+err.Error())
-  }
-
-  var result []map[string]any
-
-  bottleMap := tools.ToMap(bottle, "id", "title", "content", "image_url", "audio_url",
-    "mood", "topic_id", "created_at", "views", "user")
-  bottleMap["user"] = tools.ToMap(bottle.User, "id", "nickname", "avatar_url", "sex")
-  bottleMap["topic"] = tools.ToMap(bottle.Topic, "id", "title", "status")
-  result = append(result, bottleMap)
 
   return OkResponse(c, result)
 }
@@ -259,60 +194,16 @@ func (h *BottleHandler) HandleGetBottles(c echo.Context) error {
     return ErrorResponse(c, http.StatusInternalServerError, "Failed to get bottles")
   }
 
-  return PagedOkResponse(c, bottles, total, params.Page, params.PageSize)
-}
-
-// HandleGetViewedBottles 获取用户查看过的漂流瓶列表
-func (h *BottleHandler) HandleGetViewedBottles(c echo.Context) error {
-  userID := tools.GetUserIDFromContext(c)
-
-  var params structs.BottleQueryParams
-  if err := c.Bind(&params); err != nil {
-    return ErrorResponse(c, http.StatusBadRequest, "无效的请求参数"+err.Error())
-  }
-
-  if params.Page == 0 {
-    params.Page = 1
-  }
-  if params.PageSize == 0 {
-    params.PageSize = 10
-  }
-
-  // 查询用户查看过的漂流瓶
-  query := h.db.Model(&model.BottleView{}).
-    Select("bottle_views.*, bottles.*").
-    Joins("LEFT JOIN bottles ON bottle_views.bottle_id = bottles.id").
-    Where("bottle_views.user_id = ?", userID).
-    Preload("Bottle.User")
-
-  // 计算总数
-  var total int64
-  if err := query.Count(&total).Error; err != nil {
-    return ErrorResponse(c, http.StatusInternalServerError, "Failed to count bottles")
-  }
-
-  // 排序
-  query = query.Order("bottle_views.updated_at DESC")
-
-  // 分页
-  offset := (params.Page - 1) * params.PageSize
-  var bottleViews []model.BottleView
-  if err := query.Offset(offset).Limit(params.PageSize).Find(&bottleViews).Error; err != nil {
-    return ErrorResponse(c, http.StatusInternalServerError, "Failed to get bottles")
-  }
+  // 数据清洗
 
   var result []map[string]any
-  for _, bottleView := range bottleViews {
-    // 不指定字段列表，将返回所有字段
-    // 或者明确指定要返回的字段
-    bottleMap := tools.ToMap(bottleView.Bottle, "id", "title", "content", "image_url", "audio_url",
-      "mood", "topic_id", "created_at", "views", "user")
-    // user 也过滤
-    bottleMap["user"] = tools.ToMap(bottleView.User, "id", "nickname", "avatar_url", "sex")
-
+  for _, bottle := range bottles {
+    bottleMap := tools.ToMap(bottle, "id", "title", "content", "image_url", "audio_url",
+      "mood", "topic_id", "created_at", "resonances", "views", "user")
+    bottleMap["user"] = tools.ToMap(bottle.User, "id", "nickname", "avatar", "sex")
+    bottleMap["topic"] = tools.ToMap(bottle.Topic, "id", "title")
     result = append(result, bottleMap)
   }
-
   return PagedOkResponse(c, result, total, params.Page, params.PageSize)
 }
 
@@ -371,7 +262,7 @@ func (h *BottleHandler) HandleGetRecentViewedBottles(c echo.Context) error {
   })
 }
 
-// HandleGetHotBottles 获取热门漂流瓶
+// HandleGetHotBottles 获取热门漂流瓶 (可选参数 页码, 页数, 时间范围)
 func (h *BottleHandler) HandleGetHotBottles(c echo.Context) error {
   var params structs.HotBottleQueryParams
   if err := c.Bind(&params); err != nil {
@@ -389,24 +280,21 @@ func (h *BottleHandler) HandleGetHotBottles(c echo.Context) error {
     params.PageSize = 10
   }
 
-  // 构建基础查询
-  query := h.db.Model(&model.Bottle{}).
-    Where("is_public = ?", true).
-    Preload("User")
+  // 构建基础查询，注意这里不要使用 Model
+  query := h.db.Table("bottles").
+    Select("bottles.*, users.*, (bottles.views * 0.4 + bottles.resonances * 0.6) as hotness").
+    Joins("LEFT JOIN users ON bottles.user_id = users.id").
+    Where("bottles.is_public = ?", true)
 
   // 根据时间范围筛选
   switch params.TimeRange {
   case "day":
-    query = query.Where("created_at >= ?", time.Now().AddDate(0, 0, -1))
+    query = query.Where("bottles.created_at >= ?", time.Now().AddDate(0, 0, -1))
   case "week":
-    query = query.Where("created_at >= ?", time.Now().AddDate(0, 0, -7))
+    query = query.Where("bottles.created_at >= ?", time.Now().AddDate(0, 0, -7))
   case "month":
-    query = query.Where("created_at >= ?", time.Now().AddDate(0, -1, 0))
+    query = query.Where("bottles.created_at >= ?", time.Now().AddDate(0, -1, 0))
   }
-
-  // 计算热度分数
-  // 热度分数 = 浏览量 * 0.4 + 共鸣值 * 0.6
-  query = query.Select("*, (views * 0.4 + resonance_value * 0.6) as hot_score")
 
   // 计算总数
   var total int64
@@ -414,21 +302,32 @@ func (h *BottleHandler) HandleGetHotBottles(c echo.Context) error {
     return ErrorResponse(c, http.StatusInternalServerError, "Failed to count bottles")
   }
 
-  // 按热度分数排序并分页
+  // 按热度排序并分页
   offset := (params.Page - 1) * params.PageSize
-  var bottles []struct {
+  type Result struct {
     model.Bottle
-    HotScore float64 `json:"hot_score"`
+    Hotness float64 `json:"hotness"`
+    User    model.User
   }
+  var results []Result
 
   err := query.
-    Order("hot_score DESC").
+    Order("hotness DESC").
     Offset(offset).
     Limit(params.PageSize).
-    Find(&bottles).Error
+    Scan(&results).Error
 
   if err != nil {
     return ErrorResponse(c, http.StatusInternalServerError, "Failed to get hot bottles")
+  }
+
+  // 处理返回数据
+  var bottles []map[string]interface{}
+  for _, result := range results {
+    bottleMap := tools.ToMap(&result.Bottle, "id", "title", "content", "image_url", "audio_url", "mood", "topic_id", "user_id", "created_at", "views", "resonances")
+    bottleMap["hotness"] = result.Hotness
+    bottleMap["user"] = tools.ToMap(&result.User, "id,nickname,avatar,sex")
+    bottles = append(bottles, bottleMap)
   }
 
   return PagedOkResponse(c, map[string]interface{}{
