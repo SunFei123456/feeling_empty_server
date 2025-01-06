@@ -13,6 +13,7 @@ type CreateBottleRequest struct {
   Mood     string `json:"mood" validate:"required"`
   TopicID  *uint  `json:"topic_id"`
   IsPublic bool   `json:"is_public" validate:"required"`
+  OceanID  *uint  `json:"ocean_id" validate:"omitempty,min=1"`
 }
 
 // Validate 自定义验证函数

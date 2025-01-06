@@ -8,6 +8,7 @@ import (
   "gorm.io/gorm"
   "net/http"
   "time"
+  "fmt"
 )
 
 type BottleHandler struct {
@@ -25,35 +26,63 @@ func (h *BottleHandler) HandleCreateBottle(c echo.Context) error {
     return ErrorResponse(c, http.StatusBadRequest, "无效的请求体,请检查请求参数"+err.Error())
   }
 
-  // 验证 根据结构体的 validate 标签
   if err := c.Validate(&req); err != nil {
     return ErrorResponse(c, http.StatusBadRequest, err.Error())
   }
 
-  // 调用自定义验证方法
   if err := req.Validate(); err != nil {
     return ErrorResponse(c, http.StatusBadRequest, err.Error())
   }
 
   userID := tools.GetUserIDFromContext(c)
-  // 创建漂流瓶(uid, content, image_url, audio_url, mood, topic_id, is_public)
-  bottle := &model.Bottle{
-    Title:    req.Title,
-    UserID:   userID,
-    Content:  req.Content,
-    ImageURL: req.ImageURL,
-    AudioURL: req.AudioURL,
-    Mood:     req.Mood,
-    TopicID:  req.TopicID,
-    IsPublic: req.IsPublic,
-  }
 
-  if err := h.db.Create(bottle).Error; err != nil {
-    return ErrorResponse(c, http.StatusInternalServerError, "创建漂流瓶失败"+err.Error())
-  }
+  // 使用事务确保数据一致性
+  err := h.db.Transaction(func(tx *gorm.DB) error {
+    // 1. 创建漂流瓶
+    bottle := &model.Bottle{
+      Title:    req.Title,
+      UserID:   userID,
+      Content:  req.Content,
+      ImageURL: req.ImageURL,
+      AudioURL: req.AudioURL,
+      Mood:     req.Mood,
+      TopicID:  req.TopicID,
+      IsPublic: req.IsPublic,
+    }
 
-  if err := h.db.Preload("User").First(bottle, "id = ?", bottle.ID).Error; err != nil {
-    return ErrorResponse(c, http.StatusInternalServerError, "获取漂流瓶失败"+err.Error())
+    if err := tx.Create(bottle).Error; err != nil {
+      return fmt.Errorf("创建漂流瓶失败: %v", err)
+    }
+
+    // 2. 如果指定了海域ID，创建海域关联
+    if req.OceanID != nil {
+      // 检查海域是否存在
+      var ocean model.Ocean
+      if err := tx.First(&ocean, *req.OceanID).Error; err != nil {
+        return fmt.Errorf("指定的海域不存在: %v", err)
+      }
+
+      // 创建海域漂流瓶关联
+      oceanBottle := &model.OceanBottle{
+        OceanID:  *req.OceanID,
+        BottleID: bottle.ID,
+      }
+
+      if err := tx.Create(oceanBottle).Error; err != nil {
+        return fmt.Errorf("关联海域失败: %v", err)
+      }
+    }
+
+    // 3. 加载关联的用户信息
+    if err := tx.Preload("User").First(bottle, bottle.ID).Error; err != nil {
+      return fmt.Errorf("加载用户信息失败: %v", err)
+    }
+
+    return nil
+  })
+
+  if err != nil {
+    return ErrorResponse(c, http.StatusInternalServerError, err.Error())
   }
 
   return OkResponse(c, "创建成功!")

@@ -16,6 +16,7 @@ func SetupRoutes(e *echo.Echo) {
   bottleViewHandler := handler.BottleViewHandler{}
   cosHandler := handler.COSHandler{}
   bottleInteractionHandler := handler.NewBottleInteractionHandler(db.DB)
+  oceanHandler := handler.NewOceanHandler(db.DB)
 
   // API 路由组
   api := e.Group("/api/v1")
@@ -85,5 +86,13 @@ func SetupRoutes(e *echo.Echo) {
   {
     tcos.GET("/upload-token", cosHandler.GetUploadToken)
   }
+
+  // 海域相关路由
+  oceans := authenticated.Group("/oceans")
+  {
+    oceans.GET("", oceanHandler.HandleGetOceans)                // 获取所有海域信息
+    oceans.GET("/:ocean_id/bottles", oceanHandler.HandleGetOceanBottles) // 获取指定海域的瓶子
+  }
+
   // TODO: 话题相关路由
 }
