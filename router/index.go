@@ -15,6 +15,7 @@ func SetupRoutes(e *echo.Echo) {
   bottleHandler := handler.NewBottleHandler(db.DB)
   bottleViewHandler := handler.BottleViewHandler{}
   cosHandler := handler.COSHandler{}
+  bottleInteractionHandler := handler.NewBottleInteractionHandler(db.DB)
 
   // API 路由组
   api := e.Group("/api/v1")
@@ -53,6 +54,17 @@ func SetupRoutes(e *echo.Echo) {
     bottles.GET("/random", bottleHandler.HandleGetRandomBottles)
     bottles.GET("/hot", bottleHandler.HandleGetHotBottles)
     bottles.GET("/recent-viewed", bottleHandler.HandleGetRecentViewedBottles)
+
+    // 互动相关路由
+    bottles.POST("/:id/resonate", bottleInteractionHandler.HandleResonateBottle)
+    bottles.DELETE("/:id/resonate", bottleInteractionHandler.HandleCancelResonateBottle)
+    bottles.GET("/resonated", bottleInteractionHandler.HandleGetUserResonatedBottles)
+
+    bottles.POST("/:id/favorite", bottleInteractionHandler.HandleFavoriteBottle)
+    bottles.DELETE("/:id/favorite", bottleInteractionHandler.HandleCancelFavoriteBottle)
+    bottles.GET("/favorited", bottleInteractionHandler.HandleGetUserFavoriteBottles)
+
+    bottles.POST("/:id/share", bottleInteractionHandler.HandleShareBottle)
   }
 
   // 漂流瓶浏览记录相关路由

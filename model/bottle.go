@@ -12,6 +12,8 @@ type Bottle struct {
   TopicID    *uint  `gorm:"comment:话题ID" json:"topic_id"`
   IsPublic   bool   `gorm:"default:true;comment:是否公开" json:"is_public"`
   Resonances int    `gorm:"default:0;comment:共鸣量" json:"resonances"`
+  Favorites  int    `gorm:"default:0;comment:收藏量" json:"favorites"`
+  Shares     int    `gorm:"default:0;comment:分享量" json:"shares"`
   Views      int    `gorm:"default:0;comment:浏览量" json:"views"`
   // 关联
   User  User  `gorm:"foreignKey:UserID" json:"user"`
