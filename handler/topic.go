@@ -95,7 +95,7 @@ func (h *TopicHandler) HandleGetTopicBottles(c echo.Context) error {
   var result []map[string]interface{}
   for _, bt := range bottleTopics {
     bottleMap := tools.ToMap(&bt.Bottle, "id", "title", "content", "image_url", "audio_url",
-      "mood", "created_at", "views", "resonances", "favorites")
+      "mood", "topic_id", "created_at", "views", "resonances", "shares", "favorites")
 
     // 使用服务添加交互状态
     h.interactionService.EnrichBottleWithInteractionStatus(bottleMap, userID, bt.BottleID)

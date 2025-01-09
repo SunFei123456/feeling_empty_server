@@ -46,7 +46,7 @@ func (h *OceanHandler) HandleGetOceanBottles(c echo.Context) error {
   // 处理返回数据
   var result []map[string]interface{}
   for _, ob := range oceanBottles {
-    bottleMap := tools.ToMap(&ob.Bottle, "id", "title", "content", "image_url", "audio_url", "mood", "topic_id", "created_at", "views", "resonances", "favorites")
+    bottleMap := tools.ToMap(&ob.Bottle, "id", "title", "content", "image_url", "audio_url", "mood", "topic_id", "created_at", "views", "resonances", "shares", "favorites")
 
     // 使用服务添加交互状态
     h.interactionService.EnrichBottleWithInteractionStatus(bottleMap, userID, ob.BottleID)
