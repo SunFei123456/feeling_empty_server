@@ -9,14 +9,19 @@ import (
   "gorm.io/gorm"
   "net/http"
   "strconv"
+  "fangkong_xinsheng_app/service"
 )
 
 type BottleInteractionHandler struct {
-  db *gorm.DB
+  db                 *gorm.DB
+  interactionService *service.BottleInteractionService
 }
 
 func NewBottleInteractionHandler(db *gorm.DB) *BottleInteractionHandler {
-  return &BottleInteractionHandler{db: db}
+  return &BottleInteractionHandler{
+    db:                 db,
+    interactionService: service.NewBottleInteractionService(db),
+  }
 }
 
 // HandleResonateBottle 共振漂流瓶
@@ -138,7 +143,11 @@ func (h *BottleInteractionHandler) HandleGetUserResonatedBottles(c echo.Context)
 
   var result []map[string]any
   for _, r := range resonances {
-    bottleMap := tools.ToMap(&r.Bottle, "id", "title", "content", "image_url", "audio_url", "mood", "topic_id", "created_at", "views", "resonances", "favorites")
+    bottleMap := tools.ToMap(&r.Bottle, "id", "title", "content", "image_url", "audio_url", "mood", "topic_id", "created_at", "views", "resonances", "shares", "favorites")
+    
+    // 使用服务添加交互状态
+    h.interactionService.EnrichBottleWithInteractionStatus(bottleMap, userID, r.BottleID)
+
     if r.Bottle.User.ID != 0 {
       bottleMap["user"] = tools.ToMap(&r.Bottle.User, "id", "nickname", "avatar", "sex")
     }
@@ -259,7 +268,11 @@ func (h *BottleInteractionHandler) HandleGetUserFavoriteBottles(c echo.Context) 
 
   var result []map[string]any
   for _, f := range favorites {
-    bottleMap := tools.ToMap(&f.Bottle, "id", "title", "content", "image_url", "audio_url", "mood", "topic_id", "created_at", "views", "resonances", "favorites")
+    bottleMap := tools.ToMap(&f.Bottle, "id", "title", "content", "image_url", "audio_url", "mood", "topic_id", "created_at", "views", "resonances", "shares", "favorites")
+    
+    // 使用服务添加交互状态
+    h.interactionService.EnrichBottleWithInteractionStatus(bottleMap, userID, f.BottleID)
+
     if f.Bottle.User.ID != 0 {
       bottleMap["user"] = tools.ToMap(&f.Bottle.User, "id", "nickname", "avatar", "sex")
     }

@@ -5,6 +5,7 @@ import (
   "fangkong_xinsheng_app/model"
   "fangkong_xinsheng_app/structs"
   "fangkong_xinsheng_app/tools"
+  "fangkong_xinsheng_app/service"
   "github.com/labstack/echo/v4"
   "gorm.io/gorm"
   "net/http"
@@ -12,7 +13,17 @@ import (
   "time"
 )
 
-type BottleViewHandler struct{}
+type BottleViewHandler struct {
+  db                 *gorm.DB
+  interactionService *service.BottleInteractionService
+}
+
+func NewBottleViewHandler(db *gorm.DB) *BottleViewHandler {
+  return &BottleViewHandler{
+    db:                 db,
+    interactionService: service.NewBottleInteractionService(db),
+  }
+}
 
 // HandleCreateBottleView 创建漂流瓶查看记录 (同步更新该漂流瓶的浏览量)
 func (bv *BottleViewHandler) HandleCreateBottleView(c echo.Context) error {
@@ -126,13 +137,15 @@ func (bv *BottleViewHandler) HandleGetBottleViews(c echo.Context) error {
 
   var result []map[string]any
   for _, bottleView := range bottleViews {
-    // 不指定字段列表，将返回所有字段
-    // 或者明确指定要返回的字段
     bottleMap := tools.ToMap(bottleView.Bottle, "id", "title", "content", "image_url", "audio_url",
-      "mood", "topic_id", "created_at", "views", "resonances", "user")
-    // user 也过滤
-    bottleMap["user"] = tools.ToMap(bottleView.Bottle.User, "id", "nickname", "avatar", "sex")
+      "mood", "topic_id", "created_at", "views", "resonances", "shares", "favorites")
 
+    // 添加交互状态
+    bv.interactionService.EnrichBottleWithInteractionStatus(bottleMap, userID, bottleView.Bottle.ID)
+
+    if bottleView.Bottle.User.ID != 0 {
+      bottleMap["user"] = tools.ToMap(bottleView.Bottle.User, "id", "nickname", "avatar", "sex")
+    }
     result = append(result, bottleMap)
   }
 

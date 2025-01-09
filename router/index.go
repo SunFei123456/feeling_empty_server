@@ -13,7 +13,7 @@ func SetupRoutes(e *echo.Echo) {
   // 初始化处理器
   userHandler := handler.NewUserHandler(service.NewUserService(db.DB))
   bottleHandler := handler.NewBottleHandler(db.DB)
-  bottleViewHandler := handler.BottleViewHandler{}
+  bottleViewHandler := handler.NewBottleViewHandler(db.DB)
   cosHandler := handler.COSHandler{}
   bottleInteractionHandler := handler.NewBottleInteractionHandler(db.DB)
   oceanHandler := handler.NewOceanHandler(db.DB)
