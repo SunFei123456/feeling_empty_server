@@ -6,18 +6,24 @@ import (
   "github.com/labstack/echo/v4"
   "gorm.io/gorm"
   "net/http"
+  "fangkong_xinsheng_app/service"
 )
 
 type OceanHandler struct {
   db *gorm.DB
+  interactionService *service.BottleInteractionService
 }
 
 func NewOceanHandler(db *gorm.DB) *OceanHandler {
-  return &OceanHandler{db: db}
+  return &OceanHandler{
+    db: db,
+    interactionService: service.NewBottleInteractionService(db),
+  }
 }
 
 // HandleGetOceanBottles 获取指定海域下的随机50个瓶子信息
 func (h *OceanHandler) HandleGetOceanBottles(c echo.Context) error {
+  userID := tools.GetUserIDFromContext(c)
   // 从路径参数获取海域ID
   oceanID := c.Param("ocean_id")
 
@@ -41,6 +47,10 @@ func (h *OceanHandler) HandleGetOceanBottles(c echo.Context) error {
   var result []map[string]interface{}
   for _, ob := range oceanBottles {
     bottleMap := tools.ToMap(&ob.Bottle, "id", "title", "content", "image_url", "audio_url", "mood", "topic_id", "created_at", "views", "resonances", "favorites")
+
+    // 使用服务添加交互状态
+    h.interactionService.EnrichBottleWithInteractionStatus(bottleMap, userID, ob.BottleID)
+
     if ob.Bottle.User.ID != 0 {
       bottleMap["user"] = tools.ToMap(&ob.Bottle.User, "id", "nickname", "avatar", "sex")
     }

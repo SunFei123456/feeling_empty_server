@@ -2,6 +2,7 @@ package handler
 
 import (
   "fangkong_xinsheng_app/model"
+  "fangkong_xinsheng_app/service"
   "fangkong_xinsheng_app/structs"
   "fangkong_xinsheng_app/tools"
   "fmt"
@@ -12,11 +13,15 @@ import (
 )
 
 type BottleHandler struct {
-  db *gorm.DB
+  db                 *gorm.DB
+  interactionService *service.BottleInteractionService
 }
 
 func NewBottleHandler(db *gorm.DB) *BottleHandler {
-  return &BottleHandler{db: db}
+  return &BottleHandler{
+    db:                 db,
+    interactionService: service.NewBottleInteractionService(db),
+  }
 }
 
 // HandleCreateBottle 创建漂流瓶
@@ -102,6 +107,8 @@ func (h *BottleHandler) HandleCreateBottle(c echo.Context) error {
 
 // HandleGetRandomBottles 随机获取漂流瓶(10个)
 func (h *BottleHandler) HandleGetRandomBottles(c echo.Context) error {
+  userID := tools.GetUserIDFromContext(c)
+
   var bottles []model.Bottle
   if err := h.db.Where("is_public = ?", true).
     Order("RAND()").
@@ -114,8 +121,14 @@ func (h *BottleHandler) HandleGetRandomBottles(c echo.Context) error {
   var result []map[string]any
   for _, bottle := range bottles {
     bottleMap := tools.ToMap(bottle, "id", "title", "content", "image_url", "audio_url",
-      "mood", "topic_id", "created_at", "resonances", "views", "user")
-    bottleMap["user"] = tools.ToMap(bottle.User, "id", "nickname", "avatar", "sex")
+      "mood", "topic_id", "created_at", "resonances", "views", "shares", "favorites", "user")
+
+    // 使用服务添加交互状态
+    h.interactionService.EnrichBottleWithInteractionStatus(bottleMap, userID, bottle.ID)
+
+    if bottle.User.ID != 0 {
+      bottleMap["user"] = tools.ToMap(bottle.User, "id", "nickname", "avatar", "sex")
+    }
 
     result = append(result, bottleMap)
   }
@@ -187,6 +200,7 @@ func (h *BottleHandler) HandleDeleteBottle(c echo.Context) error {
 
 // HandleGetBottles 获取漂流瓶列表
 func (h *BottleHandler) HandleGetBottles(c echo.Context) error {
+  userID := tools.GetUserIDFromContext(c)
   var params structs.BottleQueryParams
   if err := c.Bind(&params); err != nil {
     return ErrorResponse(c, http.StatusBadRequest, "Invalid query parameters")
@@ -240,7 +254,11 @@ func (h *BottleHandler) HandleGetBottles(c echo.Context) error {
   var result []map[string]any
   for _, bottle := range bottles {
     bottleMap := tools.ToMap(bottle, "id", "title", "content", "image_url", "audio_url",
-      "mood", "topic_id", "created_at", "resonances", "views", "user")
+      "mood", "topic_id", "created_at", "resonances", "views", "shares", "favorites", "user")
+
+    // 使用服务添加交互状态
+    h.interactionService.EnrichBottleWithInteractionStatus(bottleMap, userID, bottle.ID)
+
     bottleMap["user"] = tools.ToMap(bottle.User, "id", "nickname", "avatar", "sex")
     bottleMap["topic"] = tools.ToMap(bottle.Topic, "id", "title")
     result = append(result, bottleMap)
@@ -282,16 +300,15 @@ func (h *BottleHandler) HandleGetRecentViewedBottles(c echo.Context) error {
     }
 
     bottleMap := tools.ToMap(view.Bottle, "id", "title", "content", "image_url", "audio_url",
-      "mood", "topic_id", "created_at", "views")
+      "mood", "topic_id", "created_at", "views", "shares", "favorites", "resonances")
 
-    // 添加用户信息
+    // 使用服务添加交互状态
+    h.interactionService.EnrichBottleWithInteractionStatus(bottleMap, userID, view.Bottle.ID)
+
     if view.Bottle.User.ID != 0 {
       bottleMap["user"] = tools.ToMap(view.Bottle.User, "id", "nickname", "avatar", "sex")
     }
-
-    // 添加查看时间
     bottleMap["viewed_at"] = view.UpdatedAt
-
     result = append(result, bottleMap)
   }
 
@@ -305,6 +322,7 @@ func (h *BottleHandler) HandleGetRecentViewedBottles(c echo.Context) error {
 
 // HandleGetHotBottles 获取热门漂流瓶 (可选参数 页码, 页数, 时间范围)
 func (h *BottleHandler) HandleGetHotBottles(c echo.Context) error {
+  userID := tools.GetUserIDFromContext(c)
   var params structs.HotBottleQueryParams
   if err := c.Bind(&params); err != nil {
     return ErrorResponse(c, http.StatusBadRequest, "Invalid query parameters")
@@ -321,11 +339,11 @@ func (h *BottleHandler) HandleGetHotBottles(c echo.Context) error {
     params.PageSize = 10
   }
 
-  // 构建基础查询，注意这里不要使用 Model
-  query := h.db.Table("bottles").
-    Select("bottles.*, users.*, (bottles.views * 0.4 + bottles.resonances * 0.6) as hotness").
-    Joins("LEFT JOIN users ON bottles.user_id = users.id").
-    Where("bottles.is_public = ?", true)
+  // 构建基础查询
+  query := h.db.Model(&model.Bottle{}).
+    Select("bottles.*, (bottles.views * 0.4 + bottles.resonances * 0.6) as hotness").
+    Where("bottles.is_public = ?", true).
+    Preload("User") // 预加载用户信息
 
   // 根据时间范围筛选
   switch params.TimeRange {
@@ -348,7 +366,6 @@ func (h *BottleHandler) HandleGetHotBottles(c echo.Context) error {
   type Result struct {
     model.Bottle
     Hotness float64 `json:"hotness"`
-    User    model.User
   }
   var results []Result
 
@@ -356,7 +373,7 @@ func (h *BottleHandler) HandleGetHotBottles(c echo.Context) error {
     Order("hotness DESC").
     Offset(offset).
     Limit(params.PageSize).
-    Scan(&results).Error
+    Find(&results).Error
 
   if err != nil {
     return ErrorResponse(c, http.StatusInternalServerError, "Failed to get hot bottles")
@@ -365,9 +382,16 @@ func (h *BottleHandler) HandleGetHotBottles(c echo.Context) error {
   // 处理返回数据
   var bottles []map[string]interface{}
   for _, result := range results {
-    bottleMap := tools.ToMap(&result.Bottle, "id", "title", "content", "image_url", "audio_url", "mood", "topic_id", "user_id", "created_at", "views", "resonances")
+    bottleMap := tools.ToMap(&result.Bottle, "id", "title", "content", "image_url", "audio_url",
+      "mood", "topic_id", "created_at", "views", "resonances", "shares", "favorites")
+
+    // 使用服务添加交互状态
+    h.interactionService.EnrichBottleWithInteractionStatus(bottleMap, userID, result.Bottle.ID)
+
     bottleMap["hotness"] = result.Hotness
-    bottleMap["user"] = tools.ToMap(&result.User, "id,nickname,avatar,sex")
+    if result.User.ID != 0 {
+      bottleMap["user"] = tools.ToMap(&result.User, "id", "nickname", "avatar", "sex")
+    }
     bottles = append(bottles, bottleMap)
   }
 

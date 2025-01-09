@@ -105,7 +105,7 @@ func SetupRoutes(e *echo.Echo) {
     topics.GET("/:id", topicHandler.HandleGetTopicInfo)           // 获取话题详情
     topics.GET("/hot", topicHandler.HandleGetHotTopics)           // 获取热门话题
     topics.POST("", topicHandler.HandleCreateTopic)               // 创建话题
+    topics.GET("", topicHandler.HandleGetAllTopics)     // 获取所有话题
+    topics.GET("/search", topicHandler.HandleSearchTopics)  // 搜索话题
   }
-
-  // TODO: 话题相关路由
 }

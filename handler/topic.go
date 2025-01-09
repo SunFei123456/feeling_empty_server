@@ -4,6 +4,7 @@ import (
   "fangkong_xinsheng_app/model"
   "fangkong_xinsheng_app/structs"
   "fangkong_xinsheng_app/tools"
+  "fangkong_xinsheng_app/service"
   "github.com/labstack/echo/v4"
   "gorm.io/gorm"
   "net/http"
@@ -11,10 +12,14 @@ import (
 
 type TopicHandler struct {
   db *gorm.DB
+  interactionService *service.BottleInteractionService
 }
 
 func NewTopicHandler(db *gorm.DB) *TopicHandler {
-  return &TopicHandler{db: db}
+  return &TopicHandler{
+    db: db,
+    interactionService: service.NewBottleInteractionService(db),
+  }
 }
 
 // HandleGetSystemTopics 获取系统话题列表(前9个)
@@ -89,26 +94,11 @@ func (h *TopicHandler) HandleGetTopicBottles(c echo.Context) error {
   // 处理返回数据
   var result []map[string]interface{}
   for _, bt := range bottleTopics {
-    // 检查当前用户是否收藏了这个瓶子
-    var isFavorited bool
-    h.db.Model(&model.BottleFavorite{}).
-      Where("user_id = ? AND bottle_id = ?", userID, bt.BottleID).
-      Select("count(*) > 0").
-      Find(&isFavorited)
-
-    // 检查当前用户是否共振了这个瓶子
-    var isResonated bool
-    h.db.Model(&model.BottleResonance{}).
-      Where("user_id = ? AND bottle_id = ?", userID, bt.BottleID).
-      Select("count(*) > 0").
-      Find(&isResonated)
-
-    bottleMap := tools.ToMap(&bt.Bottle, "id", "title", "content", "image_url", "audio_url", 
+    bottleMap := tools.ToMap(&bt.Bottle, "id", "title", "content", "image_url", "audio_url",
       "mood", "created_at", "views", "resonances", "favorites")
-    
-    // 添加用户交互状态
-    bottleMap["is_favorited"] = isFavorited
-    bottleMap["is_resonated"] = isResonated
+
+    // 使用服务添加交互状态
+    h.interactionService.EnrichBottleWithInteractionStatus(bottleMap, userID, bt.BottleID)
 
     if bt.Bottle.User.ID != 0 {
       bottleMap["user"] = tools.ToMap(&bt.Bottle.User, "id", "nickname", "avatar", "sex")
@@ -194,4 +184,62 @@ func (h *TopicHandler) HandleCreateTopic(c echo.Context) error {
   }
 
   return OkResponse(c, topic)
+}
+
+// HandleGetAllTopics 获取所有话题
+func (h *TopicHandler) HandleGetAllTopics(c echo.Context) error {
+  // 获取搜索关键词
+  keyword := c.QueryParam("keyword")
+
+  // 构建查询
+  query := h.db.Select("id, title").Order("created_at DESC")
+
+  // 如果有关键词，添加模糊查询条件
+  if keyword != "" {
+    query = query.Where("title LIKE ?", "%"+keyword+"%")
+  }
+
+  var topics []model.Topic
+  if err := query.Find(&topics).Error; err != nil {
+    return ErrorResponse(c, http.StatusInternalServerError, "获取话题列表失败")
+  }
+
+  // 处理返回数据
+  var result []map[string]interface{}
+  for _, topic := range topics {
+    result = append(result, map[string]interface{}{
+      "id":    topic.ID,
+      "title": topic.Title,
+    })
+  }
+
+  return OkResponse(c, result)
+}
+
+// HandleSearchTopics 搜索话题
+func (h *TopicHandler) HandleSearchTopics(c echo.Context) error {
+  // 获取搜索关键词
+  keyword := c.QueryParam("keyword")
+  if keyword == "" {
+    return ErrorResponse(c, http.StatusBadRequest, "搜索关键词不能为空")
+  }
+
+  var topics []model.Topic
+  if err := h.db.Select("id, title").
+    Where("title LIKE ?", "%"+keyword+"%").
+    Order("created_at DESC").
+    Find(&topics).Error; err != nil {
+    return ErrorResponse(c, http.StatusInternalServerError, "搜索话题失败")
+  }
+
+  // 处理返回数据
+  var result []map[string]interface{}
+  for _, topic := range topics {
+    result = append(result, map[string]interface{}{
+      "id":    topic.ID,
+      "title": topic.Title,
+    })
+  }
+
+  return OkResponse(c, result)
 }
