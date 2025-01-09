@@ -4,11 +4,11 @@ import (
   "fangkong_xinsheng_app/model"
   "fangkong_xinsheng_app/structs"
   "fangkong_xinsheng_app/tools"
+  "fmt"
   "github.com/labstack/echo/v4"
   "gorm.io/gorm"
   "net/http"
   "time"
-  "fmt"
 )
 
 type BottleHandler struct {
@@ -70,6 +70,18 @@ func (h *BottleHandler) HandleCreateBottle(c echo.Context) error {
 
       if err := tx.Create(oceanBottle).Error; err != nil {
         return fmt.Errorf("关联海域失败: %v", err)
+      }
+    }
+
+    // 3. 如果选择了话题, 创建话题关联
+    if req.TopicID != nil {
+      topicBottle := &model.BottleTopic{
+        TopicID:  *req.TopicID,
+        UserID:   userID,
+        BottleID: bottle.ID,
+      }
+      if err := tx.Create(topicBottle).Error; err != nil {
+        return fmt.Errorf("关联话题失败: %v", err)
       }
     }
 

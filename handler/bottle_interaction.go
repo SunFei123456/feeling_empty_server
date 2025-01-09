@@ -22,7 +22,7 @@ func NewBottleInteractionHandler(db *gorm.DB) *BottleInteractionHandler {
 // HandleResonateBottle 共振漂流瓶
 func (h *BottleInteractionHandler) HandleResonateBottle(c echo.Context) error {
   userID := tools.GetUserIDFromContext(c)
-  
+
   // 1. 获取并验证 bottle_id
   bottleID, err := strconv.ParseUint(c.Param("id"), 10, 32)
   if err != nil {
@@ -275,22 +275,45 @@ func (h *BottleInteractionHandler) HandleShareBottle(c echo.Context) error {
   var bottle model.Bottle
   // 更新分享数
   if err := h.db.Model(&bottle).
-    UpdateColumn("shares", gorm.Expr("shares + ?", 1)).Where(
-    "id = ?", bottleID).
-    Error; err != nil {
+    Where("id = ?", bottleID).
+    UpdateColumn("shares", gorm.Expr("shares + ?", 1)).Error; err != nil {
     return ErrorResponse(c, http.StatusInternalServerError, "更新分享数失败: "+err.Error())
   }
-
-  // 生成分享链接或其他分享相关信息
-  shareInfo := map[string]any{
-    "url":     fmt.Sprintf("/bottles/%s", bottleID),
-    "title":   bottle.Title,
-    "content": bottle.Content,
-    "shares":  bottle.Shares + 1,
+  // 获取 shares
+  if err := h.db.Model(&bottle).
+    Where("id = ?", bottleID).
+    Select("shares").
+    Find(&bottle).Error; err != nil {
+    return ErrorResponse(c, http.StatusInternalServerError, "获取分享数失败: "+err.Error())
   }
 
   return OkResponse(c, map[string]any{
-    "message":    "分享成功",
-    "share_info": shareInfo,
+    "message": "分享成功",
+    "shares":  bottle.Shares,
+  })
+}
+
+// HandleGetBottleInteractionStatus 获取瓶子的交互状态
+func (h *BottleInteractionHandler) HandleGetBottleInteractionStatus(c echo.Context) error {
+  bottleID := c.Param("id")
+  userID := tools.GetUserIDFromContext(c)
+
+  // 检查当前用户是否收藏了这个瓶子
+  var isFavorited bool
+  h.db.Model(&model.BottleFavorite{}).
+    Where("user_id = ? AND bottle_id = ?", userID, bottleID).
+    Select("count(*) > 0").
+    Find(&isFavorited)
+
+  // 检查当前用户是否共振了这个瓶子
+  var isResonated bool
+  h.db.Model(&model.BottleResonance{}).
+    Where("user_id = ? AND bottle_id = ?", userID, bottleID).
+    Select("count(*) > 0").
+    Find(&isResonated)
+
+  return OkResponse(c, map[string]interface{}{
+    "is_favorited": isFavorited,
+    "is_resonated": isResonated,
   })
 }

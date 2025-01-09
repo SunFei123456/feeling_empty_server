@@ -17,6 +17,7 @@ func SetupRoutes(e *echo.Echo) {
   cosHandler := handler.COSHandler{}
   bottleInteractionHandler := handler.NewBottleInteractionHandler(db.DB)
   oceanHandler := handler.NewOceanHandler(db.DB)
+  topicHandler := handler.NewTopicHandler(db.DB)
 
   // API 路由组
   api := e.Group("/api/v1")
@@ -66,6 +67,8 @@ func SetupRoutes(e *echo.Echo) {
     bottles.GET("/favorited", bottleInteractionHandler.HandleGetUserFavoriteBottles)
 
     bottles.POST("/:id/share", bottleInteractionHandler.HandleShareBottle)
+
+    bottles.GET("/:id/interaction", bottleInteractionHandler.HandleGetBottleInteractionStatus)
   }
 
   // 漂流瓶浏览记录相关路由
@@ -92,6 +95,16 @@ func SetupRoutes(e *echo.Echo) {
   {
     oceans.GET("", oceanHandler.HandleGetOceans)                // 获取所有海域信息
     oceans.GET("/:ocean_id/bottles", oceanHandler.HandleGetOceanBottles) // 获取指定海域的瓶子
+  }
+
+  // 话题相关路由
+  topics := authenticated.Group("/topics")
+  {
+    topics.GET("/system", topicHandler.HandleGetSystemTopics)     // 获取系统话题
+    topics.GET("/:id/bottles", topicHandler.HandleGetTopicBottles) // 获取话题下的漂流瓶
+    topics.GET("/:id", topicHandler.HandleGetTopicInfo)           // 获取话题详情
+    topics.GET("/hot", topicHandler.HandleGetHotTopics)           // 获取热门话题
+    topics.POST("", topicHandler.HandleCreateTopic)               // 创建话题
   }
 
   // TODO: 话题相关路由
