@@ -19,6 +19,11 @@ func SetupRoutes(e *echo.Echo) {
   oceanHandler := handler.NewOceanHandler(db.DB)
   topicHandler := handler.NewTopicHandler(db.DB)
 
+  // 关注
+  var userFolloweesHandler = handler.UserFolloweesHandler{}
+  // 粉丝
+  var userFollowersHandler = handler.UserFollowersHandler{}
+
   // API 路由组
   api := e.Group("/api/v1")
 
@@ -93,19 +98,35 @@ func SetupRoutes(e *echo.Echo) {
   // 海域相关路由
   oceans := authenticated.Group("/oceans")
   {
-    oceans.GET("", oceanHandler.HandleGetOceans)                // 获取所有海域信息
+    oceans.GET("", oceanHandler.HandleGetOceans)                         // 获取所有海域信息
     oceans.GET("/:ocean_id/bottles", oceanHandler.HandleGetOceanBottles) // 获取指定海域的瓶子
   }
 
   // 话题相关路由
   topics := authenticated.Group("/topics")
   {
-    topics.GET("/system", topicHandler.HandleGetSystemTopics)     // 获取系统话题
+    topics.GET("/system", topicHandler.HandleGetSystemTopics)      // 获取系统话题
     topics.GET("/:id/bottles", topicHandler.HandleGetTopicBottles) // 获取话题下的漂流瓶
-    topics.GET("/:id", topicHandler.HandleGetTopicInfo)           // 获取话题详情
-    topics.GET("/hot", topicHandler.HandleGetHotTopics)           // 获取热门话题
-    topics.POST("", topicHandler.HandleCreateTopic)               // 创建话题
-    topics.GET("", topicHandler.HandleGetAllTopics)     // 获取所有话题
-    topics.GET("/search", topicHandler.HandleSearchTopics)  // 搜索话题
+    topics.GET("/:id", topicHandler.HandleGetTopicInfo)            // 获取话题详情
+    topics.GET("/hot", topicHandler.HandleGetHotTopics)            // 获取热门话题
+    topics.POST("", topicHandler.HandleCreateTopic)                // 创建话题
+    topics.GET("", topicHandler.HandleGetAllTopics)                // 获取所有话题
+    topics.GET("/search", topicHandler.HandleSearchTopics)         // 搜索话题
   }
+
+  // 用户关注模块
+  follows := authenticated.Group("/followees")
+  {
+    follows.GET("/user/:id", userFolloweesHandler.Index)                         //  获取指定用户的关注列表
+    follows.GET("/user/:id/follow_status", userFolloweesHandler.GetFollowStatus) //  获取两个用户之间的状态()
+    follows.POST("/user/:id/follow", userFolloweesHandler.FollowUser)            //  关注
+    follows.POST("/user/:id/unfollow", userFolloweesHandler.UnfollowUser)        // 取关
+  }
+  // 用户粉丝模块
+  fans := authenticated.Group("/followers")
+  {
+    fans.GET("/user/:id", userFollowersHandler.Index)                             //  获取指定用户的粉丝列表
+    fans.GET("/user/:id/recent", userFollowersHandler.GetRecentThreeDaysFansList) //  获取近三天内新增的粉丝 的列表
+  }
+
 }

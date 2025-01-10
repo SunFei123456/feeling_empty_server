@@ -1,9 +1,12 @@
 package tools
 
 import (
+  "fmt"
   _ "github.com/labstack/echo/v4"
+  "github.com/labstack/gommon/log"
   "os"
   "reflect"
+  "strconv"
 )
 
 // 判断是否是生产环境
@@ -45,4 +48,26 @@ func ToMap(entity any, fields ...string) map[string]any {
     }
   }
   return resultMap
+}
+
+// 解析页码 + 边界检查
+func ParsePageAndCheckParam(pageParam string) (int, error) {
+  // 页码为空, 默认值给1(首页)
+  if pageParam == "" {
+    return 1, nil
+  }
+  page, err := strconv.Atoi(pageParam)
+  // 如果转换不成功，默认返回1 (首页)
+  if err != nil {
+    log.Errorf("无效的页码数: %v", pageParam)
+    return 1, fmt.Errorf("无效的页码数: %v", pageParam)
+  }
+
+  // 处理最小边界值
+  if page < 1 {
+    log.Errorf("页码数不能为0或负数: %v", pageParam)
+    return 1, fmt.Errorf("页码数不能为0或负数: %v", pageParam)
+  }
+
+  return page, nil
 }
