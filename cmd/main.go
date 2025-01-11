@@ -20,6 +20,8 @@ func main() {
   loadEnv()
   // 初始化数据库连接
   initDataBases()
+  // 初始化Redis连接
+  initRedisClient()
   // 执行数据库迁移
   //if err := db.AutoMigrate(db.DB); err != nil {
   //  log.Fatalf("数据库迁移失败: %v", err)
@@ -79,4 +81,13 @@ func initDataBases() {
 
   // 打印成功信息
   fmt.Println("连接数据库成功", db.DB)
+}
+
+func initRedisClient() {
+  err := db.InitRedis()
+  if err != nil {
+    fmt.Println("连接Redis失败：", err)
+    return
+  }
+  fmt.Println("连接Redis成功")
 }

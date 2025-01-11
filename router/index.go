@@ -32,6 +32,8 @@ func SetupRoutes(e *echo.Echo) {
   {
     auth.POST("/register", userHandler.HandleRegister)
     auth.POST("/login", userHandler.HandleLogin)
+    auth.POST("/qq-email-login", userHandler.HandleQQEmailLogin)
+    auth.POST("/send-code", userHandler.HandleSendEmailCode)
   }
 
   // 需要认证的路由组

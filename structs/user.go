@@ -31,3 +31,14 @@ type UserResponse struct {
   Email    string `json:"email"`
   Phone    string `json:"phone"`
 }
+
+// SendEmailCodeRequest 发送邮箱验证码请求
+type SendEmailCodeRequest struct {
+    Email string `json:"email" validate:"required,email"`
+}
+
+// QQEmailLoginRequest QQ邮箱验证码登录请求
+type QQEmailLoginRequest struct {
+    Email string `json:"email" validate:"required,email"`
+    Code  string `json:"code" validate:"required,len=6"`
+}
