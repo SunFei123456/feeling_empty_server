@@ -71,3 +71,13 @@ func ParsePageAndCheckParam(pageParam string) (int, error) {
 
   return page, nil
 }
+
+// StringToUint
+func StringToUint(s string) uint {
+  i, err := strconv.ParseUint(s, 10, 32)
+  if err != nil {
+    log.Errorf("Error when converting string to uint: %v", err)
+    return 0
+  }
+  return uint(i)
+}

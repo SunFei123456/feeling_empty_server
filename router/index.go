@@ -47,7 +47,9 @@ func SetupRoutes(e *echo.Echo) {
     users.GET("", userHandler.HandleGetCurrentUser)
     // 更新用户信息
     users.PUT("", userHandler.HandleUpdateCurrentUser)
-    // 可以添加更多用户相关路由...
+
+    // 根据user_id 获取不同的用户信息
+    users.GET("/:user_id", userHandler.HandleGetUserByID)
   }
 
   // 漂流瓶相关路由

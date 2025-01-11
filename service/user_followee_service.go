@@ -45,7 +45,7 @@ func (s UserFolloweesService) GetFollowees(userId string, page int) ([]map[strin
         `, userId, userId, userId).
     Joins("JOIN users ON users.id = user_followers.followee_id").
     Joins("LEFT JOIN user_followers AS uf2 ON uf2.follower_id = user_followers.followee_id AND uf2.followee_id = ?", userId).
-    Preload("Followee", func(db *gorm.DB) *gorm.DB { return db.Select("id", "nickname", "avatar", "bio") }).
+    Preload("Followee", func(db *gorm.DB) *gorm.DB { return db.Select("id", "nickname", "avatar", "sex") }).
     Where("user_followers.follower_id = ?", userId).
     Order("follow_at DESC").
     Limit(itemsPerPage).

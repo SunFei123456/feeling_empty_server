@@ -91,6 +91,17 @@ func (h *UserHandler) HandleGetCurrentUser(c echo.Context) error {
   return OkResponse(c, tools.ToMap(user, "id", "email", "nickname", "avatar", "sex"))
 }
 
+// 根据user_id 获取不同的用户信息
+func (h *UserHandler) HandleGetUserByID(c echo.Context) error {
+  userID := c.Param("user_id")
+  user, err := h.userService.GetUserByID(tools.StringToUint(userID))
+  if err != nil {
+    return ErrorResponse(c, http.StatusNotFound, "User not found")
+  }
+
+  return OkResponse(c, tools.ToMap(user, "id", "email", "nickname", "avatar", "sex"))
+}
+
 // HandleUpdateCurrentUser 更新当前用户信息
 func (h *UserHandler) HandleUpdateCurrentUser(c echo.Context) error {
   var req structs.UpdateUserRequest
@@ -134,46 +145,46 @@ func (h *UserHandler) HandleUpdateCurrentUser(c echo.Context) error {
 
 // HandleSendEmailCode 处理发送邮箱验证码
 func (h *UserHandler) HandleSendEmailCode(c echo.Context) error {
-    var req structs.SendEmailCodeRequest
-    if err := c.Bind(&req); err != nil {
-        return ErrorResponse(c, http.StatusBadRequest, "无效的请求参数"+err.Error())
-    }
+  var req structs.SendEmailCodeRequest
+  if err := c.Bind(&req); err != nil {
+    return ErrorResponse(c, http.StatusBadRequest, "无效的请求参数"+err.Error())
+  }
 
-    if err := c.Validate(&req); err != nil {
-        return ErrorResponse(c, http.StatusBadRequest, "参数校验错误"+err.Error())
-    }
+  if err := c.Validate(&req); err != nil {
+    return ErrorResponse(c, http.StatusBadRequest, "参数校验错误"+err.Error())
+  }
 
-    if err := h.userService.SendEmailCode(req.Email); err != nil {
-        return ErrorResponse(c, http.StatusInternalServerError, err.Error())
-    }
+  if err := h.userService.SendEmailCode(req.Email); err != nil {
+    return ErrorResponse(c, http.StatusInternalServerError, err.Error())
+  }
 
-    return OkResponse(c, "验证码已发送")
+  return OkResponse(c, "验证码已发送")
 }
 
 // HandleQQEmailLogin 处理QQ邮箱验证码登录
 func (h *UserHandler) HandleQQEmailLogin(c echo.Context) error {
-    var req structs.QQEmailLoginRequest
-    if err := c.Bind(&req); err != nil {
-        return ErrorResponse(c, http.StatusBadRequest, "无效的请求参数"+err.Error())
-    }
+  var req structs.QQEmailLoginRequest
+  if err := c.Bind(&req); err != nil {
+    return ErrorResponse(c, http.StatusBadRequest, "无效的请求参数"+err.Error())
+  }
 
-    if err := c.Validate(&req); err != nil {
-        return ErrorResponse(c, http.StatusBadRequest, "参数校验错误"+err.Error())
-    }
+  if err := c.Validate(&req); err != nil {
+    return ErrorResponse(c, http.StatusBadRequest, "参数校验错误"+err.Error())
+  }
 
-    user, err := h.userService.LoginWithEmailCode(req.Email, req.Code)
-    if err != nil {
-        return ErrorResponse(c, http.StatusUnauthorized, err.Error())
-    }
+  user, err := h.userService.LoginWithEmailCode(req.Email, req.Code)
+  if err != nil {
+    return ErrorResponse(c, http.StatusUnauthorized, err.Error())
+  }
 
-    // 生成JWT token
-    token, err := tools.GenerateJWTToken(user.ID)
-    if err != nil {
-        return ErrorResponse(c, http.StatusInternalServerError, "生成token失败"+err.Error())
-    }
+  // 生成JWT token
+  token, err := tools.GenerateJWTToken(user.ID)
+  if err != nil {
+    return ErrorResponse(c, http.StatusInternalServerError, "生成token失败"+err.Error())
+  }
 
-    return OkResponse(c, map[string]interface{}{
-        "token": token,
-        "user":  tools.ToMap(user, "id", "email", "nickname", "avatar", "sex"),
-    })
+  return OkResponse(c, map[string]interface{}{
+    "token": token,
+    "user":  tools.ToMap(user, "id", "email", "nickname", "avatar", "sex"),
+  })
 }

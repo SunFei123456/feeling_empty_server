@@ -189,15 +189,25 @@ func (s *UserService) LoginWithEmailCode(email, code string) (*model.User, error
   // 删除已使用的验证码
   db.RedisClient.Del(ctx, key)
 
-  // 查找或创建用户
+  // 查找用户
   var user model.User
-  err = s.db.Where("email = ?", email).FirstOrCreate(&user, model.User{
-    Email:    email,
-    Nickname: "用户" + strings.Split(email, "@")[0], // 使用QQ号作为默认昵称
-  }).Error
-
-  if err != nil {
-    return nil, fmt.Errorf("用户创建/查询失败: %v", err)
+  err = s.db.Where("email = ?", email).First(&user).Error
+  if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+    return nil, fmt.Errorf("用户查询失败: %v", err)
   }
+
+  // 如果用户不存在，则创建新用户
+  if errors.Is(err, gorm.ErrRecordNotFound) {
+    user = model.User{
+      Email:    email,
+      Nickname: "用户" + strings.Split(email, "@")[0], // 使用QQ号作为默认昵称
+    }
+
+    err = s.db.Create(&user).Error
+    if err != nil {
+      return nil, fmt.Errorf("用户创建失败: %v", err)
+    }
+  }
+
   return &user, nil
 }

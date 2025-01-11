@@ -39,7 +39,7 @@ func (s UserFollowersService) GetFollowersWithFilter(userId string, followedAfte
   var results []model.UserFollower
   // 构建查询
   query := db.DB.
-    Preload("Follower", func(db *gorm.DB) *gorm.DB { return db.Select("id", "nickname", "avatar", "bio") }).
+    Preload("Follower", func(db *gorm.DB) *gorm.DB { return db.Select("id", "nickname", "avatar", "sex") }).
       Select(`
             user_followers.follower_id,
             user_followers.follow_at,
