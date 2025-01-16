@@ -9,6 +9,7 @@ import (
   "github.com/labstack/echo/v4"
   "gorm.io/gorm"
   "net/http"
+  "strconv"
   "time"
 )
 
@@ -198,9 +199,10 @@ func (h *BottleHandler) HandleDeleteBottle(c echo.Context) error {
   return OkResponse(c, "漂流瓶删除成功!")
 }
 
-// HandleGetBottles 获取漂流瓶列表
+// HandleGetBottles 根据user_id获取漂流瓶列表
 func (h *BottleHandler) HandleGetBottles(c echo.Context) error {
-  userID := tools.GetUserIDFromContext(c)
+  userID := c.Param("user_id")
+  uid, _ := strconv.ParseUint(userID, 10, 64)
   var params structs.BottleQueryParams
   if err := c.Bind(&params); err != nil {
     return ErrorResponse(c, http.StatusBadRequest, "Invalid query parameters")
@@ -219,9 +221,6 @@ func (h *BottleHandler) HandleGetBottles(c echo.Context) error {
 
   query := h.db.Model(&model.Bottle{}).Preload("User")
 
-  if params.UserID != 0 {
-    query = query.Where("user_id = ?", params.UserID)
-  }
   if params.TopicID != 0 {
     query = query.Where("topic_id = ?", params.TopicID)
   }
@@ -257,7 +256,7 @@ func (h *BottleHandler) HandleGetBottles(c echo.Context) error {
       "mood", "topic_id", "created_at", "resonances", "views", "shares", "favorites", "user")
 
     // 使用服务添加交互状态
-    h.interactionService.EnrichBottleWithInteractionStatus(bottleMap, userID, bottle.ID)
+    h.interactionService.EnrichBottleWithInteractionStatus(bottleMap, uint(uid), bottle.ID)
 
     bottleMap["user"] = tools.ToMap(bottle.User, "id", "nickname", "avatar", "sex")
     bottleMap["topic"] = tools.ToMap(bottle.Topic, "id", "title")

@@ -43,7 +43,6 @@ type UpdateBottleRequest struct {
 
 // BottleQueryParams 漂流瓶查询参数
 type BottleQueryParams struct {
-  UserID   uint   `query:"user_id"`
   TopicID  uint   `query:"topic_id"`
   IsPublic *bool  `query:"is_public"`
   Page     int    `query:"page" validate:"min=1"`

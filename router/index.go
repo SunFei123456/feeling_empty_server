@@ -59,7 +59,7 @@ func SetupRoutes(e *echo.Echo) {
   {
     // 基础操作
     bottles.POST("", bottleHandler.HandleCreateBottle)
-    bottles.GET("", bottleHandler.HandleGetBottles)
+    bottles.GET("/:user_id", bottleHandler.HandleGetBottles)
     bottles.PUT("/:id", bottleHandler.HandleUpdateBottle)
     bottles.DELETE("/:id", bottleHandler.HandleDeleteBottle)
 
