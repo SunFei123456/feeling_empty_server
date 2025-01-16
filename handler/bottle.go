@@ -219,7 +219,7 @@ func (h *BottleHandler) HandleGetBottles(c echo.Context) error {
     params.PageSize = 10
   }
 
-  query := h.db.Model(&model.Bottle{}).Preload("User")
+  query := h.db.Model(&model.Bottle{}).Preload("User").Where("user_id = ?", uid)
 
   if params.TopicID != 0 {
     query = query.Where("topic_id = ?", params.TopicID)
