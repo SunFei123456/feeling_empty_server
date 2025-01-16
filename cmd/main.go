@@ -66,7 +66,7 @@ func initDataBases() {
   if os.Getenv("ENV") == "production" {
     dsn = os.Getenv("REMOTE_DSN")
   } else {
-    dsn = os.Getenv("REMOTE_DSN")
+    dsn = os.Getenv("DSN")
   }
   // 调用 Open 方法，传入驱动名和连接字符串
   var err error

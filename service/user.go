@@ -211,3 +211,25 @@ func (s *UserService) LoginWithEmailCode(email, code string) (*model.User, error
 
   return &user, nil
 }
+
+// GetUserStat 获取用户数据 服务 (漂流瓶,关注,粉丝 数量)
+func (s *UserService) GetUserStat(userID uint) (any, error) {
+  // 定义stat结构体
+  type Stat struct {
+    Bottles   int64 `json:"bottles"`
+    Follows   int64 `json:"follows"`
+    Followers int64 `json:"followers"`
+  }
+  // 分别从数据库统计 获取 赋值
+  var userStat Stat
+  if err := s.db.Model(&model.Bottle{}).Where("user_id = ?", userID).Count(&userStat.Bottles).Error; err != nil {
+    return nil, fmt.Errorf("获取漂流瓶数量失败: %v", err)
+  }
+  if err := s.db.Model(&model.UserFollower{}).Where("follower_id = ?", userID).Count(&userStat.Follows).Error; err != nil {
+    return nil, fmt.Errorf("获取关注数量失败: %v", err)
+  }
+  if err := s.db.Model(&model.UserFollower{}).Where("followee_id = ?", userID).Count(&userStat.Followers).Error; err != nil {
+    return nil, fmt.Errorf("获取粉丝数量失败: %v", err)
+  }
+  return &userStat, nil
+}

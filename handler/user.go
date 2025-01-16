@@ -7,6 +7,7 @@ import (
   "fangkong_xinsheng_app/tools"
   "github.com/labstack/echo/v4"
   "net/http"
+  "strconv"
 )
 
 type UserHandler struct {
@@ -187,4 +188,16 @@ func (h *UserHandler) HandleQQEmailLogin(c echo.Context) error {
     "token": token,
     "user":  tools.ToMap(user, "id", "email", "nickname", "avatar", "sex"),
   })
+}
+
+// HandleGetUserStat 根据uid 获取用户发表的漂流瓶, 关注, 粉丝数量
+func (h *UserHandler) HandleGetUserStat(c echo.Context) error {
+  userID := c.Param("user_id")
+  // 转换
+  uid, err := strconv.ParseUint(userID, 10, 64)
+  stat, err := h.userService.GetUserStat(uint(uid))
+  if err != nil {
+    return ErrorResponse(c, http.StatusInternalServerError, err.Error())
+  }
+  return OkResponse(c, stat)
 }

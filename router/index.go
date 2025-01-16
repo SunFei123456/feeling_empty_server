@@ -47,6 +47,8 @@ func SetupRoutes(e *echo.Echo) {
     users.GET("", userHandler.HandleGetCurrentUser)
     // 更新用户信息
     users.PUT("", userHandler.HandleUpdateCurrentUser)
+    // 获取用户的数据(社交方面的数据)
+    users.GET("/stat/:user_id", userHandler.HandleGetUserStat)
 
     // 根据user_id 获取不同的用户信息
     users.GET("/:user_id", userHandler.HandleGetUserByID)
