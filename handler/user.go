@@ -41,7 +41,7 @@ func (h *UserHandler) HandleRegister(c echo.Context) error {
   }
 
   // 生成JWT token
-  token, err := tools.GenerateJWTToken(user.ID)
+  token, expirationTime, err := tools.GenerateJWTToken(user.ID)
   if err != nil {
     return ErrorResponse(c, http.StatusInternalServerError, "生成token失败")
   }
@@ -49,6 +49,7 @@ func (h *UserHandler) HandleRegister(c echo.Context) error {
   // 返回token和用户信息
   return OkResponse(c, map[string]interface{}{
     "token": token,
+    "exp":   expirationTime,
     "user":  user,
   })
 }
@@ -70,13 +71,14 @@ func (h *UserHandler) HandleLogin(c echo.Context) error {
   }
 
   // 生成JWT token
-  token, err := tools.GenerateJWTToken(user.ID)
+  token, expirationTime, err := tools.GenerateJWTToken(user.ID)
   if err != nil {
     return ErrorResponse(c, http.StatusInternalServerError, "生成token失败"+err.Error())
   }
 
   return OkResponse(c, map[string]interface{}{
     "token": token,
+    "exp":   expirationTime,
     "user":  user,
   })
 }
@@ -179,13 +181,14 @@ func (h *UserHandler) HandleQQEmailLogin(c echo.Context) error {
   }
 
   // 生成JWT token
-  token, err := tools.GenerateJWTToken(user.ID)
+  token, expirationTime, err := tools.GenerateJWTToken(user.ID)
   if err != nil {
     return ErrorResponse(c, http.StatusInternalServerError, "生成token失败"+err.Error())
   }
 
   return OkResponse(c, map[string]interface{}{
     "token": token,
+    "exp":   expirationTime,
     "user":  tools.ToMap(user, "id", "email", "nickname", "avatar", "sex"),
   })
 }

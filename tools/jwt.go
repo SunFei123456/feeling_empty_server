@@ -14,12 +14,17 @@ func GetUserIDFromContext(c echo.Context) uint {
   return id
 }
 
-// GenerateJWTToken 生成JWT token
-func GenerateJWTToken(id uint) (string, error) {
+// GenerateJWTToken 生成JWT 返回token和过期时间戳
+func GenerateJWTToken(id uint) (string, int64, error) {
+  expirationTime := time.Now().Add(time.Hour * 72)
   claims := jwt.MapClaims{
     "user_id": id,
-    "exp":     time.Now().Add(time.Hour * 72).Unix(),
+    "exp":     expirationTime.Unix(),
   }
   token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-  return token.SignedString([]byte("fangkongxinsheng_sf"))
+  signedToken, err := token.SignedString([]byte("fangkongxinsheng_sf"))
+  if err != nil {
+    return "", 0, err // 返回空字符串和零时间戳，同时返回错误
+  }
+  return signedToken, expirationTime.Unix(), nil // 返回签名的 token 和过期时间戳
 }
