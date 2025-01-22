@@ -62,12 +62,12 @@ func initDataBases() {
     },
   )
   // 获取.env的DSN变量 如果本地, 则DSN, 远端 则REMOTE_DSN
-  dsn := ""
-  if os.Getenv("ENV") == "production" {
-    dsn = os.Getenv("REMOTE_DSN")
-  } else {
-    dsn = os.Getenv("DSN")
-  }
+  dsn := os.Getenv("REMOTE_DSN")
+  //if os.Getenv("ENV") == "production" {
+  //  dsn = ""
+  //} else {
+  //  dsn = os.Getenv("REMOTE_DSN")
+  //}
   // 调用 Open 方法，传入驱动名和连接字符串
   var err error
   db.DB, err = gorm.Open(mysql.Open(dsn), &gorm.Config{
