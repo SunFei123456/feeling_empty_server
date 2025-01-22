@@ -27,14 +27,13 @@ jobs:
           DEPLOY_SERVER: ${{ secrets.DEPLOY_SERVER }}
           DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
           SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
-          DEPLOY_PATH: ${{ secrets.DEPLOY_PATH }}
         run: |
           echo "$SSH_PRIVATE_KEY" > private_key
           chmod 600 private_key
-          scp -o StrictHostKeyChecking=no -i private_key myapp.exe $DEPLOY_USER@$DEPLOY_SERVER:$DEPLOY_PATH
+          scp -o StrictHostKeyChecking=no -i private_key myapp.exe $DEPLOY_USER@$DEPLOY_SERVER:
           ssh -o StrictHostKeyChecking=no -i private_key -T $DEPLOY_USER@$DEPLOY_SERVER << 'EOF'
             echo "Checking if the file exists:"
-            ls -l ${DEPLOY_PATH}myapp.exe
+            ls -l myapp.exe
             echo "Starting or restarting the application using pm2:"
-            pm2 start ${DEPLOY_PATH}myapp.exe --name fangkongxinsheng_server --watch --update-env || pm2 restart fangkongxinsheng_server --update-env
+            pm2 start myapp.exe --name fangkongxinsheng_server --watch --update-env || pm2 restart fangkongxinsheng_server --update-env
           EOF
