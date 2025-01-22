@@ -32,6 +32,9 @@ jobs:
           echo "$SSH_PRIVATE_KEY" > private_key
           chmod 600 private_key
           scp -o StrictHostKeyChecking=no -i private_key myapp.exe $DEPLOY_USER@$DEPLOY_SERVER:$DEPLOY_PATH
-          ssh -o StrictHostKeyChecking=no -i private_key $DEPLOY_USER@$DEPLOY_SERVER << 'EOF'
-            pm2 start $DEPLOY_PATH/myapp.exe --name fangkongxinsheng_server --watch || pm2 restart fangkongxinsheng_server
+          ssh -o StrictHostKeyChecking=no -i private_key -T $DEPLOY_USER@$DEPLOY_SERVER << 'EOF'
+            echo "Checking if the file exists:"
+            ls -l $DEPLOY_PATH/myapp.exe
+            echo "Starting or restarting the application using pm2:"
+            pm2 start $DEPLOY_PATH/myapp.exe --name fangkongxinsheng_server --watch --update-env || pm2 restart fangkongxinsheng_server --update-env
           EOF
