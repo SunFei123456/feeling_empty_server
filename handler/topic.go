@@ -8,6 +8,7 @@ import (
   "github.com/labstack/echo/v4"
   "gorm.io/gorm"
   "net/http"
+  "strconv"
 )
 
 type TopicHandler struct {
@@ -139,22 +140,31 @@ func (h *TopicHandler) HandleGetTopicInfo(c echo.Context) error {
   })
 }
 
-// HandleGetHotTopics 获取内容最多的前5个话题
+// HandleGetHotTopics 获取内容最多的前n个话题
 func (h *TopicHandler) HandleGetHotTopics(c echo.Context) error {
+  // 定义请求参数 limit n
+  limit := c.QueryParam("limit")
+  // 转换为整数
+  limitInt, err := strconv.Atoi(limit)
+  if err != nil {
+    return ErrorResponse(c, http.StatusBadRequest, "无效的请求参数")
+  }
+
   type Result struct {
     ID           uint   `json:"id"`
     Title        string `json:"title"`
     ContentCount int64  `json:"content_count"`
     BgImage      string `json:"bg_image"`
+    View         int    `json:"views"`
   }
 
   var results []Result
-  err := h.db.Model(&model.BottleTopic{}).
-    Select("topic_id as id, topics.title, count(*) as content_count, topics.bg_image").
+  err = h.db.Model(&model.BottleTopic{}).
+    Select("topic_id as id, topics.title, count(*) as content_count, topics.bg_image, topics.views").
     Joins("LEFT JOIN topics ON bottle_topics.topic_id = topics.id").
     Group("topic_id").
     Order("content_count DESC").
-    Limit(5).
+    Limit(limitInt).
     Scan(&results).Error
 
   if err != nil {
@@ -231,9 +241,9 @@ func (h *TopicHandler) HandleSearchTopics(c echo.Context) error {
   }
 
   var topics []model.Topic
-  if err := h.db.Select("id, title").
+  if err := h.db.Select("id,title,views,bg_image").
     Where("title LIKE ?", "%"+keyword+"%").
-    Order("created_at DESC").
+    Order("views DESC").
     Find(&topics).Error; err != nil {
     return ErrorResponse(c, http.StatusInternalServerError, "搜索话题失败")
   }
@@ -248,4 +258,15 @@ func (h *TopicHandler) HandleSearchTopics(c echo.Context) error {
   }
 
   return OkResponse(c, result)
+}
+
+// HandleAddTopicViews 增加话题浏览量
+func (h *TopicHandler) HandleAddTopicViews(c echo.Context) error {
+  topicID := c.Param("id")
+  err := h.db.Model(&model.Topic{}).Where("id = ?", topicID).
+    Update("views", gorm.Expr("views + ?", 1)).Error
+  if err != nil {
+    return ErrorResponse(c, http.StatusInternalServerError, "增加话题浏览量失败")
+  }
+  return OkResponse(c, "增加话题浏览量成功")
 }

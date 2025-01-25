@@ -118,6 +118,7 @@ func SetupRoutes(e *echo.Echo) {
     topics.POST("", topicHandler.HandleCreateTopic)                // 创建话题
     topics.GET("", topicHandler.HandleGetAllTopics)                // 获取所有话题
     topics.GET("/search", topicHandler.HandleSearchTopics)         // 搜索话题
+    topics.POST("/views/:id", topicHandler.HandleAddTopicViews)    // 增加话题浏览量
   }
 
   // 用户关注模块
