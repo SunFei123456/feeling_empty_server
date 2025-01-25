@@ -155,12 +155,12 @@ func (h *TopicHandler) HandleGetHotTopics(c echo.Context) error {
     Title        string `json:"title"`
     ContentCount int64  `json:"content_count"`
     BgImage      string `json:"bg_image"`
-    View         int64  `json:"views"`
+    Views        int64  `json:"views"`
   }
 
   var results []Result
   err = h.db.Model(&model.BottleTopic{}).
-    Select("topic_id as id, topics.title, count(*) as content_count, topics.bg_image, topics.views").
+    Select("topic_id as id, topics.title, count(*) as content_count, topics.bg_image, topics.views as views").
     Joins("LEFT JOIN topics ON bottle_topics.topic_id = topics.id").
     Group("topic_id").
     Order("content_count DESC").
