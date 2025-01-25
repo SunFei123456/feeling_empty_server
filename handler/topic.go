@@ -145,6 +145,7 @@ func (h *TopicHandler) HandleGetHotTopics(c echo.Context) error {
     ID           uint   `json:"id"`
     Title        string `json:"title"`
     ContentCount int64  `json:"content_count"`
+    BgImage      string `json:"bg_image"`
   }
 
   var results []Result
