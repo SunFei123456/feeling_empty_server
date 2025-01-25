@@ -150,7 +150,7 @@ func (h *TopicHandler) HandleGetHotTopics(c echo.Context) error {
 
   var results []Result
   err := h.db.Model(&model.BottleTopic{}).
-    Select("topic_id as id, topics.title, count(*) as content_count").
+    Select("topic_id as id, topics.title, count(*) as content_count, topics.bg_image").
     Joins("LEFT JOIN topics ON bottle_topics.topic_id = topics.id").
     Group("topic_id").
     Order("content_count DESC").
