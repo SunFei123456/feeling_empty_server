@@ -252,8 +252,10 @@ func (h *TopicHandler) HandleSearchTopics(c echo.Context) error {
   var result []map[string]interface{}
   for _, topic := range topics {
     result = append(result, map[string]interface{}{
-      "id":    topic.ID,
-      "title": topic.Title,
+      "id":       topic.ID,
+      "title":    topic.Title,
+      "views":    topic.Views,
+      "bg_image": topic.BgImage,
     })
   }
 
