@@ -7,9 +7,12 @@ import (
   "os"
   "reflect"
   "strconv"
+
+  "crypto/rand"
+  "math/big"
 )
 
-// 判断是否是生产环境
+// IsProduction 判断是否是生产环境
 func IsProduction() bool {
   return os.Getenv("GO_ENV") == "production"
 }
@@ -50,7 +53,7 @@ func ToMap(entity any, fields ...string) map[string]any {
   return resultMap
 }
 
-// 解析页码 + 边界检查
+// ParsePageAndCheckParam 解析页码 + 边界检查
 func ParsePageAndCheckParam(pageParam string) (int, error) {
   // 页码为空, 默认值给1(首页)
   if pageParam == "" {
@@ -72,7 +75,7 @@ func ParsePageAndCheckParam(pageParam string) (int, error) {
   return page, nil
 }
 
-// StringToUint
+// StringToUint 将字符串转换为无符号整数
 func StringToUint(s string) uint {
   i, err := strconv.ParseUint(s, 10, 32)
   if err != nil {
@@ -80,4 +83,17 @@ func StringToUint(s string) uint {
     return 0
   }
   return uint(i)
+}
+
+// RandomArrayElement 从数组中随机返回一个元素
+func RandomArrayElement(arr []string) string {
+  // 生成一个随机的索引
+  randomIndex, err := rand.Int(rand.Reader, big.NewInt(int64(len(arr))))
+  if err != nil {
+    // 如果生成随机数失败，可以返回第一个元素或处理错误
+    return arr[0]
+  }
+
+  // 返回随机索引对应的元素
+  return arr[randomIndex.Int64()]
 }

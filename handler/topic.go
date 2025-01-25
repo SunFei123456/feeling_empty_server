@@ -2,22 +2,22 @@ package handler
 
 import (
   "fangkong_xinsheng_app/model"
+  "fangkong_xinsheng_app/service"
   "fangkong_xinsheng_app/structs"
   "fangkong_xinsheng_app/tools"
-  "fangkong_xinsheng_app/service"
   "github.com/labstack/echo/v4"
   "gorm.io/gorm"
   "net/http"
 )
 
 type TopicHandler struct {
-  db *gorm.DB
+  db                 *gorm.DB
   interactionService *service.BottleInteractionService
 }
 
 func NewTopicHandler(db *gorm.DB) *TopicHandler {
   return &TopicHandler{
-    db: db,
+    db:                 db,
     interactionService: service.NewBottleInteractionService(db),
   }
 }
@@ -174,9 +174,14 @@ func (h *TopicHandler) HandleCreateTopic(c echo.Context) error {
     return ErrorResponse(c, http.StatusBadRequest, err.Error())
   }
 
+  if req.BgImage == "" {
+    req.BgImage = "https://www.zmtc.com/wp-content/uploads/2023/0309/20230309070220562.jpg"
+  }
+
   topic := &model.Topic{
-    Title: req.Title,
-    Type:  req.Type,
+    Title:   req.Title,
+    Type:    req.Type,
+    BgImage: req.BgImage,
   }
 
   if err := h.db.Create(topic).Error; err != nil {
