@@ -140,7 +140,7 @@ func (h *TopicHandler) HandleGetTopicInfo(c echo.Context) error {
   })
 }
 
-// HandleGetHotTopics 获取内容最多的前n个话题
+// HandleGetHotTopics 获取浏览量最多的前n个话题
 func (h *TopicHandler) HandleGetHotTopics(c echo.Context) error {
   // 定义请求参数 limit n
   limit := c.QueryParam("limit")
@@ -163,7 +163,7 @@ func (h *TopicHandler) HandleGetHotTopics(c echo.Context) error {
     Select("topic_id as id, topics.title, count(*) as content_count, topics.bg_image, topics.views as views").
     Joins("LEFT JOIN topics ON bottle_topics.topic_id = topics.id").
     Group("topic_id").
-    Order("content_count DESC").
+    Order("views DESC").
     Limit(limitInt).
     Scan(&results).Error
 
