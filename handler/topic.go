@@ -150,25 +150,17 @@ func (h *TopicHandler) HandleGetHotTopics(c echo.Context) error {
     return ErrorResponse(c, http.StatusBadRequest, "无效的请求参数")
   }
 
-  type Result struct {
-    ID           uint   `json:"id"`
-    Title        string `json:"title"`
-    ContentCount int64  `json:"content_count"`
-    BgImage      string `json:"bg_image"`
-    Views        int64  `json:"views"`
-  }
-
-  var results []Result
-  err = h.db.Model(&model.BottleTopic{}).
-    Select("topic_id as id, topics.title, count(*) as content_count, topics.bg_image, topics.views as views").
-    Joins("LEFT JOIN topics ON bottle_topics.topic_id = topics.id").
-    Group("topic_id").
+  var topics []model.Topic
+  if err := h.db.Select("id, title, views").
     Order("views DESC").
     Limit(limitInt).
-    Scan(&results).Error
-
-  if err != nil {
+    Find(&topics).Error; err != nil {
     return ErrorResponse(c, http.StatusInternalServerError, "获取热门话题失败")
+  }
+
+  var results []map[string]interface{}
+  for _, topic := range topics {
+    results = append(results, tools.ToMap(&topic, "id", "title", "views", "bg_image"))
   }
 
   return OkResponse(c, results)
