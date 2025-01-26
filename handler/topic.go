@@ -137,6 +137,7 @@ func (h *TopicHandler) HandleGetTopicInfo(c echo.Context) error {
     "views":             topic.Views,
     "content_count":     contentCount,
     "participant_count": participantCount,
+    "bg_image":          topic.BgImage,
   })
 }
 
