@@ -151,7 +151,7 @@ func (h *TopicHandler) HandleGetHotTopics(c echo.Context) error {
   }
 
   var topics []model.Topic
-  if err := h.db.Select("id, title, views").
+  if err := h.db.Select("id, title, views, bg_image").
     Order("views DESC").
     Limit(limitInt).
     Find(&topics).Error; err != nil {
